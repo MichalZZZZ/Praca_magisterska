@@ -1,0 +1,1905 @@
+%%%% Opcje
+%% wmii --- Wydział Matematyki i informatyki
+%%
+%% Kierunek:
+%%      mat --- Matematyka
+%%      inf --- Informatyka
+%%      fiz Fizyka techniczna
+%%
+%% Poziom studiów (praca):
+%%      mgr --- magisterska
+%%      lic --- licencjacka
+%%      inz --- inżynierska
+
+
+
+\documentclass[wmii, inf, mgr]{uwmthesis}
+
+\newcommand{\version}{0.04}
+
+\usepackage[utf8]{inputenc}
+\usepackage[MeX]{polski}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\usepackage{tocloft}
+\usepackage{url}
+\usepackage{dirtytalk}
+\usepackage{color}
+\usepackage{tabularx}
+\usepackage{lipsum}
+\usepackage{enumitem}
+\usepackage{longtable}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\usepackage{adjustbox}
+
+
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{breaklinks=true}
+
+\usepackage[style=numeric,backend=biber,language=polish,url=false,doi=false]{biblatex}
+\addbibresource{bibliografia.bib}
+\DefineBibliographyStrings{polish}{in = {}}
+
+\DeclareFieldFormat[article,book,mvbook,collection]{title}{\mkbibemph{#1}}
+\apptocmd{\bibsetup}{\sloppy\emergencystretch=3em\relax}{}{}
+
+
+
+\newcounter{myfigure}
+\renewcommand{\themyfigure}{\arabic{myfigure}}
+
+\newcommand{\myfigure}[3]{
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#3\linewidth]{#1}
+    \caption{#2}
+    \label{fig:#1}
+    \addtocounter{myfigure}{1}
+  \end{figure}
+}
+\renewcommand{\cftfigpresnum}{Rysunek~}
+\renewcommand{\cftfigaftersnum}{.}
+\setlength{\cftfignumwidth}{0.8cm}
+\newlength{\myfigwidth}
+\settowidth{\myfigwidth}{\cftfigpresnum\cftfigaftersnum}
+\addtolength{\cftfignumwidth}{\myfigwidth}
+
+\newcommand{\AZ}[1]{{\color{red}[AZ: #1]}}
+
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{4}{\z@}%
+  {3.25ex \@plus1ex \@minus.2ex}%
+  {1ex}%
+  {\normalfont\normalsize\bfseries}}
+\makeatother
+
+
+\date{2025}
+\title{Wykorzystanie technik wyjaśnialności w klasyfikacji emocji na podstawie tekstu}
+\author{Michał Ziółkowski}
+\etitle{Utilizing Explainability Techniques in Emotion Classification Based on Text}
+\wykonanaw{Katedrze Metod Matematycznych Informatyki}
+\ewykonanaw{the Department of Mathematical Methods of Computer Science}
+
+\podkierunkiem{dr Agnieszki Zbrzezny}
+\epodkierunkiem{Agnieszka Zbrzezny PhD}
+
+\begin{document}
+\renewcommand{\refname}{Bibliografia}
+\renewcommand{\bibname}{Bibliografia}
+
+\maketitle
+
+\tableofcontents
+
+
+
+
+\chapter*{Przedstawienie problemu}
+Współczesne modele językowe oparte na transformatorach, takie jak BERT, osiągają wysoką skuteczność w zadaniach klasyfikacji tekstu, w tym klasyfikacji emocji. Jednocześnie ich złożona architektura sprawia, że działają one jako \textit{,,czarne skrzynki''}, co znacząco utrudnia interpretację predykcji. Brak przejrzystości modeli tego typu utrudnia m.in. audyt algorytmiczny, nadzór nad ich działaniem oraz wykrywanie potencjalnych uprzedzeń i błędów. Jak podkreśla Ribeiro w artykule \textit{,,Why Should I Trust You?: Explaining the Predictions of Any Classifier''} \cite{tulio2016}, zrozumienie przyczyn predykcji modelu jest kluczowe dla budowania zaufania do jego wyników. W literaturze wskazuje się na napięcie między dokładnością a interpretowalnością: modele o najwyższej skuteczności, takie jak wielowarstwowe sieci neuronowe, generują często trudne do wytłumaczenia decyzje, co opisali Scott Lundberg i Su-In Lee w swojej pracy \textit{,,A~ Unified Approach to Interpreting Model Predictions''} \cite{SHAPlundberg}. Konieczne jest więc stosowanie metod wyjaśniania (XAI), które wskazują istotne elementy wejścia wpływające na predykcję modelu i czynią go bardziej zrozumiałym. Coraz bardziej wyrafinowane metody analizy tekstu wymagają dużych zbiorów danych umożliwiających trenowanie modeli. Wprowadzony przez Demszky’ego zbiór \textit{GoEmotions} stanowi największy dotąd otwarty korpus (58 tys. komentarzy z Reddita) oznaczonych ręcznie w 27 kategoriach emocji (oraz stan neutralny).
+
+
+\paragraph{Współczesne modele NLP i zbiór GoEmotions}
+W badaniach nad klasyfikacją emocji dominują obecnie modele oparte na głębokich sieciach neuronowych i architekturze transformatorowej, zwłaszcza model BERT (Bidirectional Encoder Representations from Transformers). BERT to wstępnie wytrenowany model językowy, który można dostosować do konkretnych zadań dodając jedną warstwę wyjściową; dzięki temu po fine-tuningu osiąga on stan techniki w wielu zadaniach NLP. Jak wskazują Devlin i współpracownicy w artukule \textit{,,BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding''} \cite{BERT}, model BERT ,,uzyskuje nowe wyniki stanu techniki dla jedenastu zadań przetwarzania języka naturalnego'' dzięki dwukierunkowej reprezentacji kontekstu. W kontekście emocji w tekście, wykorzystanie dużego zbioru GoEmotions oraz BERT-a umożliwiło ocenę wieloklasowej klasyfikacji 27 kategorii uczuć. Demszky i in. odnotowują, że wytrenowany na \textit{GoEmotions} model BERT osiągnął średni F1 $\sim$ 0,46 w tym zadaniu, co świadczy o skomplikowaniu problemu i wskazuje na znaczne pole do dalszych ulepszeń.
+
+\paragraph{Wyzwania interpretowalności modeli NLP i potrzeba XAI}
+Rosnąca złożoność modeli NLP pociąga za sobą konieczność zadbania o ich interpretowalność i zrozumiałość działania. W miarę jak coraz częściej stosuje się głębokie sieci neuronowe czy duże modele językowe, coraz ważniejsze staje się zapewnienie, aby ich decyzje były przejrzyste dla człowieka. Jak zauważają eksperci IBM w artykule \textit{,,What is AI interpretability?''}~ \cite{IBM}~ -- ,,w~ miarę jak coraz bardziej złożone modele (w tym głębokie sieci neuronowe) stają się powszechne, interpretowalność AI staje się bardziej istotna''. Modele typu ,,czarna skrzynka'' potrafią uzyskać bardzo wysoką dokładność, ale ich wewnętrzne działanie jest trudne do zrozumienia. Prowadzi to do uzasadnionych obaw o rzetelność, sprawiedliwość czy występowanie uprzedzeń w podejmowanych decyzjach. Konsekwencją tego jest potrzeba budowania zaufania do systemów -- w praktyce poprzez dostarczanie wyjaśnień ich działania. Celem Explainable AI (XAI) jest właśnie identyfikacja czynników wpływających na wynik modelu, tj. odpowiedź na pytanie ,,dlaczego model podjął taką, a nie inną decyzję''. Właśnie na grunt tego podejścia wpisuje się problem wyjaśnialności klasyfikacji emocji w tekście -- zależy nam nie tylko na poprawie skuteczności modelu, lecz także na zrozumieniu, które elementy wypowiedzi (np. konkretne słowa lub frazy) zadecydowały o przypisaniu danej emocji.
+
+W badaniu przeprowadzono analizę wyjaśnialności modeli z użyciem kilku metod XAI, a także prostszych technik pełniących rolę punktów odniesienia. Do zaawansowanych narzędzi XAI należą między innymi LIME i SHAP, które są model-agnostycznymi metodami wyjaśniania indywidualnych predykcji modelu (LIME aproksymuje model lokalnie modelem liniowym, zaś SHAP przypisuje wagę każdej cesze na podstawie wartości Shapleya). Wyniki tych metod porównane zostaną z klasycznymi miarami istotności cech. Przykładowo TF-IDF jest tradycyjną miarą ważności słowa w dokumencie, szeroko stosowaną w analizie tekstu. Podobnie proste może być wykorzystanie surowej częstości występowania słów lub nawet losowego przydziału wag cech (metoda losowa) jako bazowych modeli odniesienia. Porównanie interpretowalnych metod z tymi prostszymi podejściami pozwoli wykazać ich przydatność i ewentualne ograniczenia przy analizie emocji w tekstach.
+
+
+\chapter*{Wstęp}
+Współczesna komunikacja w dużej mierze opiera się na tekście -- od krótkich wpisów w~ mediach społecznościowych, przez wiadomości e-mail, aż po artykuły prasowe i publikacje naukowe. W tym kontekście analiza emocji stała się jednym z kluczowych zagadnień przetwarzania języka naturalnego (NLP). Automatyczne rozpoznawanie emocji znajduje szerokie zastosowania praktyczne: od analizy opinii konsumenckich i monitorowania nastrojów społecznych, po wykorzystanie w psychologii, edukacji oraz w systemach opartych na sztucznej inteligencji, takich jak chatboty czy wirtualni asystenci. 
+
+Rozwój głębokiego uczenia i modeli opartych na mechanizmie uwagi, takich jak BERT, znacząco zwiększył skuteczność klasyfikatorów emocji. Modele te osiągają wysoką jakość predykcji dzięki transferowi wiedzy z dużych zbiorów danych, ale ich rosnąca złożoność powoduje, że funkcjonują jak \textit{czarne skrzynki}. Brakuje w nich przejrzystości i wskazania, które elementy tekstu były decydujące dla przyjętej klasyfikacji. Taka sytuacja ogranicza zaufanie do wyników i utrudnia ich krytyczną ocenę, szczególnie w zadaniach o dużym znaczeniu społecznym. 
+
+Z tego powodu w ostatnich latach coraz większą uwagę poświęca się wyjaśnialnej sztucznej inteligencji (XAI -- Explainable Artificial Intelligence). Metody XAI pozwalają lepiej zrozumieć działanie modeli, wskazują, które fragmenty danych wejściowych miały największy wpływ na wynik klasyfikacji, oraz umożliwiają porównanie jakości wyjaśnień. W niniejszej pracy zastosowano dwie popularne techniki: SHAP (SHapley Additive exPlanations) i LIME (Local Interpretable Model-Agnostic Explanations). Dodatkowo, w celu oceny wartości uzyskanych wyjaśnień, wykorzystano proste metody bazowe (TF--IDF, Random, Freq), które stanowiły punkt odniesienia dla wyników modeli XAI. 
+
+Celem pracy była budowa modelu klasyfikacji emocji w tekstach z wykorzystaniem zbioru \textit{GoEmotions} oraz ocena skuteczności i interpretowalności tego modelu. Badania obejmowały: przygotowanie i przetwarzanie danych (m.in. redukcję liczby klas, oversampling, tokenizację), trening i ewaluację modelu BERT, a następnie analizę jakości klasyfikacji z użyciem metryk takich jak F1, Hamming loss czy subset accuracy. Kluczową częścią była ocena metod XAI poprzez obliczenie wskaźników AUC\textsubscript{del} i AUC\textsubscript{ins}, porównanie ich z wynikami baseline’ów, a~ także analiza rankingów słów dla wybranych klas emocji. 
+
+Praca składa się z pięciu zasadniczych części. 
+\begin{itemize}
+	\item \textbf{Rozdział 1} przedstawia podstawy teoretyczne dotyczące NLP, klasyfikacji emocji oraz wyjaśnialności modeli. 
+	\item \textbf{Rozdział 2} opisuje metodykę badań, w tym charakterystykę zbioru \textit{GoEmotions}, architekturę modelu BERT oraz implementację metod SHAP i LIME. 
+	\item \textbf{Rozdział 3} prezentuje wyniki eksperymentów, obejmujące skuteczność klasyfikacji emocji, ocenę jakości wyjaśnień oraz porównanie ich z metodami bazowymi. 
+	\item \textbf{Rozdział 4} zawiera dyskusję wyników, w której omówiono mocne i słabe strony zastosowanych metod, ich wpływ na interpretację predykcji oraz ograniczenia badań. 
+	\item \textbf{Rozdział 5} stanowi podsumowanie i wnioski końcowe, syntetyzując uzyskane rezultaty i~ wskazując kierunki dalszych badań. 
+\end{itemize}
+
+Wyniki przeprowadzonych badań wskazują, że BERT skutecznie rozpoznaje emocje w tekście, a metody wyjaśnialności, szczególnie SHAP, dostarczają wartościowych i stabilnych wyjaśnień. Analiza porównawcza z metodami bazowymi pokazuje jednak, że nawet proste heurystyki mogą stanowić konkurencyjny punkt odniesienia, co podkreśla znaczenie krytycznej oceny jakości wyjaśnień. Wnioski te mogą wspierać rozwój bardziej przejrzystych i wiarygodnych systemów NLP, lepiej dostosowanych do różnorodnych kontekstów językowych i społecznych.
+
+
+
+\chapter{NLP i techniki wyjaśnialności}
+Rozdział ten przedstawia podstawy teoretyczne związane z przetwarzaniem języka naturalnego (NLP) oraz z obszarem sztucznej inteligencji wyjaśnialnej (XAI). Omówione zostały kluczowe zagadnienia, które stanowią fundament dalszej części pracy poświęconej klasyfikacji emocji w tekstach oraz analizie technik interpretacji wyników modeli.  
+
+W pierwszej części zaprezentowane zostaną główne komponenty i wyzwania stojące przed współczesnym NLP, ze szczególnym uwzględnieniem klasyfikacji emocji i sentymentów. Następnie przybliżone zostaną koncepcje interpretowalności i wyjaśnialności modeli, a także najważniejsze metody XAI, które pozwalają zrozumieć mechanizmy działania złożonych modeli uczenia maszynowego.  
+
+Ostatnia część rozdziału skupia się na roli wyjaśnialności w kontekście klasyfikacji emocji, ze wskazaniem praktycznego znaczenia wykorzystania metod takich jak SHAP czy LIME do uzasadniania decyzji modelu oraz analizy osadzeń semantycznych. Dzięki temu rozdział tworzy spójne tło teoretyczne, które umożliwia lepsze zrozumienie eksperymentów i wyników zaprezentowanych w dalszej części pracy.
+
+\section{Przetwarzanie języka naturalnego (NLP)}
+NLP czyli przetwarzanie języka naturalnego -- jest to bardzo interesujący oraz ciekawy i~ szeroki odłam w dziedzinie sztucznej inteligencji. Spaja ze sobą różne dziedziny: lingwistykę, informatykę oraz AI. Wszystko po to, aby komputer mógł przetworzyć ludzki język, a bardziej szczegółowo -- zrozumieć, przeanalizować i wygenerować jakąś wypowiedź. Dzięki NLP maszyny potrafią rozmawiać z człowiekiem w sposób naturalny. Aktualnie, wiele nowoczesnych technologii, na przykład chatboty (ChatGPT) czy asystenci głosowi (Google Assistant) opierają się na NLP. W książce \textit{,,Speech and Language Processing''} \cite{SpeechandLanguageProcessing} autorzy Daniel Jurafsky i James H. Martin w rozdziale 1 w sekcji \textit{,,KnowledgeinSpeechandLanguageProcessing''} definiują NLP jako interdyscyplinarną dziedzinę, opisują jej cele (rozumienie, analiza i generacja języka), oraz omawiają przykłady takich technologii jak chatboty czy asystenci głosowi.
+
+\subsection{Główne komponenty NLP}
+
+W książce ,,Speech and Language Processing'' \cite{SpeechandLanguageProcessing} autorów Daniel Jurafsky i James H. Martin znjaduję się różnorodnych informacji na temat NLP, na przykład, w NLP można wyszczególnić różne modele. Pomagają one maszynom zrozumieć ludzki język. Oto kilka z nich:
+\begin{itemize}
+    \item {Fonetyka} -- analizuje fizyczne aspekty mowy: wymowę, percepcję oraz parametry akustyczne dźwięków. W rozdziale \textit{,,Phonetics''} w sekcji \textit{,,Articulatory Phonetics''} \cite{SpeechandLanguageProcessing} autorzy omawiają sposób artykulacji (miejsca i sposób artykulacji spółgłosek, samogłoski, sylaby), a także właściwości akustyczne, takie jak częstotliwość, natężenie dźwięku i ich reprezentacja na spektrogramach.
+    \item {Fonologia} -- koncentruje się na abstrakcyjnych systemach fonemicznych języka i ich regułach. Rozdział \textit{,,Computational Phonology ''} w sekcjach \textit{,, Finite-State Phonology''} oraz \textit{,,Advanced Finite-State Phonology''} \cite{SpeechandLanguageProcessing} wyjaśnia, jak fonemy różnią się od alofonów oraz jak opisuje się reguły zmienności fonologicznej.
+    \item {Morfologia} -- zajmuję się badaniem struktury słów, ich odmianą oraz w jaki sposób są tworzone. W rozdziale \textit{,,Words \& Transducers''} \cite{SpeechandLanguageProcessing} w sekcji \textit{,,Surveyof(Mostly)EnglishMorphology''} przedstawiono elementy słowa (rdzeń, morfemy fleksyjne i słowotwórcze), a także metody analizy morfologicznej z wykorzystaniem finite-state transducers (FST) -- te transducery umożliwiają generację analiz morfologicznych takich jak ,,cats → cat +N +Pl''. 
+    \item {Składnia} -- dotyczy reguł, które mówią o poprawnym łączeniu słów pod względem gramatycznym w zdania. Rozdział \textit{,,Formal Grammars of English''} \cite{SpeechandLanguageProcessing} sekcje \textit{,,Constituency''} oraz \textit{,,Context-Free Grammars''} omawiają gramatyki bezkontekstowe (CFG) i strukturę składniową, np. frazy nominalne i czasownikowe.
+    \item{Semantyka} -- analizuje znaczenie słów oraz zdań. Rozdział \textit{,,Representing Meaning''} \cite{NaturalLanguageProcessing} sekcje \textit{,,First-OrderLogic''} oraz \textit{,,Model-TheoreticSemantics''} przedstawiają logikę pierwszego rzędu i kompozycję semantyczną, czyli jak łączyć znaczenie słów, by zrozumieć zdania.
+    \item {Pragmatyka i dyskurs} -- skupiają się na kontekście wypowiedzi i intencji w dialogu. Rozdział \textit{,,Computational Discourse''} \cite{SpeechandLanguageProcessing} w sekcjach \textit{,,Discourse Segmentation''} i \textit{,,Text coherence''} wyjaśnia, jak utrzymać spójność tekstu i analizować odniesienia (koherencja, anafora).
+\end{itemize}
+
+\subsection{Zastosowania NLP i obecne wyzwania}
+Aktualnie stosowane algorytmy NLP -- w większości są to modele językowe, które opierają się na uczeniu maszynowym. Analizują ogromne zbiory danych, a następnie wydobywają z~ nich trudne i skomplikowane wzorce językowe. Taka operacja umożliwia algorytmom lepsze zrozumienie tekstu. Postęp technologii NLP sprawił, że jest ona wszechobecna na co dzień. Na przykład: asystenci głosowi do pisania wiadomości na smartfonach czy chociażby korekty i~ sugestie pisowni, aby automatycznie poprawiać błędy. Są kluczowe także dla rozwoju inteligentnych systemów, umożliwiając naturalną komunikację z maszynami, poszukiwanie informacji oraz analizę dużych zbiorów danych tekstowych.
+
+Mimo, że modele uczenia maszynowego stają się coraz bardziej dokładne, a możliwości sprzętowe coraz bardziej się rozwijają to NLP staje jeszcze przed wieloma wyzwaniami, które autorzy Daniel Jurafsky i James H. Martin wymieniają w książce \textit{,,Speech and Language Processing''} \cite{SpeechandLanguageProcessing}:
+\begin{itemize}
+    \item {Ilość oraz różnorodność języków} -- ogromne różnice w gramatyce czy leksyce języków nadal sprawiają problemy systemom przetwarzania języka naturalnego. Rozdział \textit{,,Machine Translation''} \cite{SpeechandLanguageProcessing} sekcja \textit{,,Why is Machine Translation So Hard?''} prezentuje typologie różnic między językami (kolejność, struktura, leksyka).
+    \item {Rozumienie kontekstu} -- aby NLP poprawnie zinterpretowało, co człowiek chcę przekazać w danym momencie, wymaga uwzględnienia całego kontekstu sytuacji, a czasem nawet kontekstu kulturowego. Jest to opisane w rozdziale \textit{,,Computational Discourse''} \cite{SpeechandLanguageProcessing} w sekcji \textit{,,Text Coherence''}.
+    \item {Aspekty etyki w NLP} -- modele mogą odtwarzać i wzmacniać uprzedzenia, które znajdują się w danych treningowych. Rozdział \textit{,,Introduction''} \cite{SpeechandLanguageProcessing} sekcja \textit{,,Knowledge in Speech and Language Processing''} traktuje o ograniczeniach związanych z danymi oraz o możliwych uprzedzeniach.
+\end{itemize}
+
+W przyszłości NLP może odegrać kluczową rolę w rozwoju sztucznej inteligencji. Wraz z~ coraz szybszym wzrostem technologii oraz coraz mniej ograniczającej architekturze sprzętowej NLP najprawdopodobniej będzie umożliwiać coraz to lepsze, skuteczniejsze i bardziej zaawansowane metody interakcji człowiek-maszyna.
+
+\section{Klasyfikacja emocji w tekstach}
+Rozpoznawanie emocji zawartych w tekstach to jedno z kluczowych wyzwań w dziedzinie przetwarzania języka naturalnego (NLP). Klasyfikacja emocji pozwala określić ogólny wydźwięk wypowiedzi nadawcy. Dodatkowo, umożliwia zidentyfikować bardziej złożone stany emocjonalne w zdaniach. Proces ten zazwyczaj podzielony jest na dwa etapy. Pierwszy etap polega na określeniu, czy dana wypowiedź ma charakter subiektywny. Drugi etap to analiza sentymentu wypowiedzi, pod warunkiem że w pierwszym etapie została określona jako subiektywna. W~ kolejnych częściach tego podrozdziału omówione zostaną klasyfikacja subiektywności i klasyfikacja sentymentów zdań. Obydwa zagadnienia stanowią fundament dla dalszej analizy emocji w tekście.
+
+\subsection{Klasyfikacja subiektywności}
+Klasyfikacja subiektywności polega na rozróżnianiu subiektywnych od obiektywnych treści w~ tekście. Identyfikacja subiektywnych części i fragmentów w analizie sentymentu oraz klasyfikacji emocji ma kluczowe znaczenie. Subiektywne fragmenty zawierają opinie, odczuwane emocje oraz nastawienie autora (negatywne, pozytywne bądź neutralne). Fakty lub dane statystyczne, czyli informacje obiektywne, są natomiast bezużyteczne w klasyfikacji emocji, ponieważ nie wyrażają żadnego stosunku emocjonalnego wobec omawianego tekstu.
+
+Jak podkreśla Bing Liu w książce \textit{,,Sentiment Analysis and Opinion Mining''} \cite{SentimentAnalysisandOpinionMining}, w rozdziale \textit{,,Sentence Subjectivity and Sentiment Classification''} w sekcji \textit{,,Subjectivity Classification''}, klasyfikacja subiektywności stanowi bardzo istotny element analizy sentymentu. Pozwala na eliminację obiektywnych fragmentów tekstu, które nie wnoszą wartości dla oceny emocjonalnej treści.
+
+Istnieją różne metody klasyfikacji subiektywności. Jedną z najczęściej stosowanych jest uczenie maszynowe, w którym wykorzystuje się modele klasyfikacyjne, takie jak drzewa decyzyjne, maszyny wektorów nośnych (SVM) czy sieci neuronowe. Modele te trenuje się na oznaczonych zbiorach danych. Alternatywą, mniej złożoną, jest analiza słownikowa, polegająca na identyfikowaniu słów i zwrotów na podstawie słowników łączących tekst z emocjami. Przykładowo, słowa takie jak \textit{,,wspaniały''}, \textit{,,okropny''}, \textit{,,leniwy''} czy \textit{,,zły''} wskazują na subiektywność treści.
+
+Klasyfikacja subiektywności może odbywać się na różnych poziomach: całych dokumentów, akapitów, zdań, pojedynczych fraz oraz słów. Na poziomie zdań szczególnie istotne jest ustalenie, czy dane zdanie zawiera opinię, czy jedynie informację obiektywną. Na przykład:
+\begin{itemize}
+    \item \textbf{Zdanie obiektywne:} \textit{,,Dzisiaj jest 25 stopni Celsjusza.''}
+    \item \textbf{Zdanie subiektywne:} \textit{,,Dzisiaj jest bardzo ładna pogoda!''}
+\end{itemize}
+
+Dalsza analiza sentymentu prowadzona jest wyłącznie na zdaniach subiektywnych, co pozwala na dokładniejsze określenie emocji towarzyszących danej wypowiedzi.
+
+
+
+\subsection{Klasyfikacja sentymentów zdań}
+Klasyfikacja sentymentów polega na określeniu emocji, jakie towarzyszą w pojedynczych zdaniach. Ocena dotyczy tego, czy dane zdanie ma charakter pozytywny, negatywny lub neutralny. Różni się to od klasyfikacji sentymentu na poziomie całego dokumentu tym, że analiza na poziomie zdania pozwala bardziej precyzyjnie wskazać fragmenty tekstu, które niosą ze sobą konkretne emocje.
+
+W książce \textit{,,Sentiment Analysis and Opinion Mining''} \cite{SentimentAnalysisandOpinionMining}, w rozdziale \textit{Sentence Subjectivity and Sentiment Classification} w sekcji \textit{,,Sentence Sentiment Classification''}, autor Bing Liu wskazuje, że klasyfikacja sentymentu na poziomie zdań stanowi kluczowy etap w analizie opinii. Zaznacza jednocześnie, że podejście to posiada istotne ograniczenia -- zdania mogą zawierać sprzeczne sentymenty, które trudno jednoznacznie przypisać do jednej kategorii.
+
+Jednym z głównych wyzwań klasyfikacji sentymentów zdań są przypadki, gdy zdania zawierają mieszane emocje lub opinie dotyczące różnych aspektów. Przykład: \textit{,,Mimo, że bezrobocie w~ kraju jest wysokie, to gospodarka trzyma się na wysokim poziomie i ma się dobrze.''} — zdanie to zawiera pozytywny aspekt odnoszący się do gospodarki, a jednocześnie negatywny dotyczący bezrobocia. Trudno je jednoznacznie sklasyfikować jako pozytywne lub negatywne. Aby nie utracić istotnych informacji, często stosuje się analizę sentymentu na poziomie aspektów (\textit{ang. aspect-based sentiment analysis, ABSA}), która pozwala na bardziej szczegółową interpretację.
+
+Kolejnym problemem są zdania porównawcze, np. \textit{,,Samochody BMW prowadzi się lepiej niż samochody Mercedesa.''}. Podstawowe modele klasyfikacji sentymentu mogą mieć trudności w~ ich interpretacji, ponieważ takie porównania nie wyrażają wprost pozytywnej lub negatywnej opinii, a raczej wskazują preferencję -- że coś jest lepsze, szybsze czy ciekawsze w odniesieniu do innego obiektu.
+
+Metody klasyfikacji sentymentu zdań dzielą się na dwa główne podejścia: nadzorowane i~ nienadzorowane. Modele nadzorowane, takie jak BERT, LSTM czy tradycyjne SVM, uczą się na oznaczonych zbiorach danych i wykorzystują cechy tekstowe (n-gramy, embeddingi słów, cechy semantyczne). Metody nienadzorowane opierają się natomiast na słownikach sentymentu oraz algorytmach regułowych.
+
+Podsumowując, klasyfikacja sentymentów znajduje szerokie zastosowanie, m.in. w analizie opinii klientów na temat produktów i usług, monitorowaniu nastrojów społecznych czy analizie emocji w komunikatach politycznych. Ważne jest, aby modele NLP stosowane w takich zadaniach były interpretowalne w kontekście wyjaśnialności, co pozwala zrozumieć, dlaczego dany sentyment został przypisany do konkretnego zdania.
+
+
+\section{Sztuczna inteligencja wyjaśnialna (XAI)}
+Modele uczenia maszynowego, takie jak sieci neuronowe stają się coraz większe i bardziej złożone. Niesie to za sobą zwiększającą się trudność w ich zrozumieniu ich działania. Twórcy systemów opartych na sztucznej inteligencji coraz częściej wymagają, aby decyzje dokonywane przez algorytmy były możliwe do uzasadnienia. Tutaj z pomocą przychodzi dziedzina znana jako sztuczna inteligencja wyjaśnialna \textit{(ang. Explainable Artificial Intelligence -- XAI)}. W artykule \textit{Explainable AI (XAI): Enhancing Transparency and Interpretability in Machine Learning Models} \cite{XAIAW} autor Alan Willie w rozdziale \textit{,,Applications of Explainable AI''} omawia, że wraz z coraz powszechniejszym stosowaniem modeli ML w dziedzinach takich jak opieka zdrowotna, finanse oraz prawo, rośnie potrzeba ich przejrzystości i zrozumiałości.
+
+Celem XAI jest opracowywanie metod, które umożliwiają użytkownikom zrozumienie, zaufanie i weryfikację decyzji podejmowanych przez modele uczące się. W tym kontekście istotne staje się rozróżnienie pomiędzy interpretowalnością a wyjaśnialnością modeli, jak również zrozumienie, jaką rolę odgrywa kontekst użytkownika oraz forma prezentacji wyjaśnień. W~ artykule ,,\textit{Explainable Artificial Intelligence (XAI): Concepts, Taxonomies, Opportunities and Challenges toward Responsible AI}'' \cite{XAI} w rozdziale \textit{,,Explainability: What, Why, What For and How?''} autorzy wprowadzają kluczowe definicje wyjaśnialności, interpretowalności, wyjaśniając ich rolę w XAI.
+
+\subsection{Interpretowalność a wyjaśnialność modeli}
+Interpretowalność i wyjaśnialność bywają w literaturze stosowane zamiennie. W rzeczywistości są to dwie różne pojęcia, mianowicie:
+
+\begin{itemize}
+    \item {Interpretowalność \textit{(ang. interpretability)}} -- oznacza zdolność modelu do bycia zrozumiałym samym w sobie. To znaczy, że nie ma potrzeby stosowania dodatkowych technik. Przykładami takich modeli są drzewa decyzyjne, regresja liniowa czy reguły IF-THEN, gdzie sposób dochodzenia do decyzji jest przejrzysty i zrozumiały dla człowieka.
+
+    \item {Wyjaśnialność \textit{(ang. explainability)}} -- dotyczy technik umożliwiających generowanie objaśnień dla wyników modeli, które same w sobie nie są interpretowalne. Modele takie, jak głębokie sieci neuronowe czy złożone algorytmy zespołowe (np. Random Forest, XGBoost), wymagają zastosowania metod post-hoc -- takich jak LIME, SHAP czy analiza wag -- które pozwalają wyjaśnić, dlaczego model podjął określoną decyzję.
+\end{itemize}
+
+Ważne jest zrozumienie różnic tych pojęć. Ma to znaczenie praktyczne, szczególnie w kontekście regulacji prawnych (np. RODO) oraz budowania zaufania w systemy AI. Użytkownik końcowy może zaakceptować decyzję modelu tylko wtedy, gdy rozumie, na jakiej podstawie została ona podjęta. Artukuł \textit{Explainable Artificial Intelligence (XAI): Concepts, Taxonomies, Opportunities and Challenges toward Responsible AI} \cite{XAI} w rozdziale \textit{,,Related Works''} w sekcji \textit{,,Terminology Clarification''} opisuje jak rozróżnić oba te pojęcia.
+
+\subsection{Kategorie i metody wyjaśniania modeli}
+Na szczególną uwagę zasługują tu techniki typu ,,post-hoc''. Są to techniki, które nie są wbudowane w model od początku. Stosuje się je dopiero po wytrenowaniu. Metody te upraszczają lub przybliżają działanie modelu. Służą one do wyjaśniania modeli trudnych do interpretacji, na przykład BERT \textit{(ang. Bidirectional Encoder Representations from Transformers)}. Autorzy w artykule \textit{Explainable Artificial Intelligence (XAI): Concepts, Taxonomies, Opportunities and Challenges toward Responsible AI} \cite{XAI} w rozdziel \textit{,,Related Works''} w sekcji \textit{,,Post-hoc Explainability Techniques for Machine Learning Models''} proponują klasyfikację post-hocowych metod wyjaśniania według trzech głównych kryteriów:
+
+\begin{itemize}
+    \item {Intencja wyjaśnienia} -- typ podejścia wyjaśniającego (np. przez uproszczenie, przez przykład),
+    \item {Zastosowana metoda} -- konkretna technika (np. analiza wrażliwości),
+    \item {Typ danych} -- dziedzina, w której dana metoda została pierwotnie zastosowana (np. tekst, obrazy, dane tabelaryczne).
+\end{itemize}
+
+W ramach tej klasyfikacji autorzy w rozdziale \textit{,,Related Works''} w sekcji \textit{,,Post-hoc Explainability Techniques for Machine Learning Models''} \cite{XAI} wyróżniają sześć głównych kategorii metod wyjaśniania:
+
+\begin{itemize}
+    \item {Wyjaśnienia tekstowe \textit{(ang. Text Explanations)}} -- polegają na generowaniu opisów tekstowych, które uzasadniają decyzje modelu. Mogą to być wygenerowane naturalne opisy, jak i~ reguły logiczne odwzorowujące zachowanie modelu.
+    
+    \item {Wyjaśnienia wizualne \textit{(ang. Visual Explanations)}} -- wizualizują zachowanie modelu, często z użyciem redukcji wymiarowości. Są przydatne przy wyjaśnianiu złożonych interakcji pomiędzy zmiennymi modelu dla użytkowników nietechnicznych.
+    
+    \item {Wyjaśnienia lokalne \textit{(ang. Local Explanations)}} -- skupiają się na objaśnianiu działania modelu w ograniczonym, lokalnym obszarze przestrzeni decyzyjnej. Dzięki temu możliwe jest zrozumienie konkretnej predykcji bez konieczności analizowania całego modelu.
+    
+    \item {Wyjaśnienia przez przykład \textit{(ang. Explanations by Example)}} -- odnoszą się do doboru przykładów danych, które są najbardziej reprezentatywne dla danej decyzji modelu. Naśladują ludzką tendencję do uzasadniania przez analogię.
+    
+    \item {Wyjaśnienia przez uproszczenie \textit{(ang. Explanations by Simplification)}} -- polegają na stworzeniu nowego, uproszczonego modelu, który imituje działanie oryginalnego modelu. Z tą różnicą, że jest on bardziej przejrzysty i łatwiejszy do zrozumienia.
+    
+    \item {Wyjaśnienia oparte na ważności cech \textit{(ang. Feature Relevance Explanations)}} --  obliczają znaczenie poszczególnych cech wejściowych w kontekście wyniku modelu. Zwykle polegają na analizie wrażliwości lub miarach przypisujących cechom tzw. ,,relevance scores'', które pokazują ich wpływ na wynik końcowy.
+\end{itemize}
+
+\section{Rola wyjaśnialności w kontekście klasyfikacji emocji z tekstu}
+Współczesne systemy klasyfikacji emocji z tekstu, szczególnie oparte na głębokich modelach uczenia maszynowego i osadzeniach semantycznych (ang. word embeddings), często osiągają wysoką skuteczność predykcyjną. Jednakże ich złożona struktura, oparta na setkach milionów parametrów, skutkuje brakiem przejrzystości decyzji modelu -- co ogranicza ich zastosowanie w~ obszarach wymagających zaufania i weryfikowalności, takich jak psychologia, opieka zdrowotna czy analiza nastrojów społecznych. Przykładem podejścia, które łączy wysoką skuteczność klasyfikacji z możliwością uzasadniania decyzji, jest model opisany w artykule \textit{,,Explainable Emotion Recognition from Tweets using Deep Learning and Word Embedding Models''} \cite{ExplainableAI}. Autorzy zastosowali nowoczesne techniki wyjaśnialnej sztucznej inteligencji (XAI), aby umożliwić użytkownikom wgląd w proces klasyfikacji emocji z tekstu.
+
+\subsection{Moduł XAI oparty na SHAP jako uzasadnienie decyzji}
+Kluczową innowacją w omawianym badaniu było zastosowanie narzędzia SHAP (SHapley Additive exPlanations) jako mechanizmu do interpretacji decyzji modelu klasyfikującego emocje. SHAP został zintegrowany z modelem hybrydowym opartym na DistilBERT oraz CNN, który przypisywał tweety do jednej z sześciu klas emocjonalnych: złość, strach, radość, miłość, smutek i zaskoczenie. Zastosowanie SHAP przyniosło szereg istotnych korzyści:
+
+\begin{itemize}
+    \item {Wyjaśnienia na poziomie słów (tokenów)}: Każdemu słowu przypisywana była wartość wpływu na predykcję. Dzięki temu można było wskazać, które fragmenty wypowiedzi w największym stopniu wpłynęły na decyzję modelu. Przykładowo, słowo “humiliated” w zdaniu mogło zostać uznane za główny wskaźnik emocji smutku.
+
+    \item {Zdolność do analizy złożonych konstrukcji językowych}: Model wraz z SHAP był w stanie radzić sobie z tweetami zawierającymi sprzeczne wyrażenia lub negacje. Dla zdań typu ,,I used to love him, but now I hate him'' czy ,,I don’t dislike him'', model prawidłowo wskazywał dominującą emocję, uwzględniając niuanse językowe i zmienność kontekstu.
+
+    \item {Wizualizacja wpływu cech}: Graficzne przedstawienie wyników SHAP (np. wykresy wartości tokenów) umożliwiało użytkownikom -- zarówno technicznym, jak i nietechnicznym -- łatwe zrozumienie działania modelu i identyfikację istotnych słów w kontekście emocji.
+\end{itemize}
+
+\subsection{Znaczenie osadzeń semantycznych i ich wyjaśnialność}
+W artykule podkreślono również rolę, jaką odgrywają osadzenia semantyczne w reprezentacji tekstu i ich wpływ na klasyfikację emocji. Autorzy przetestowali różne techniki embeddingów, w tym Word2Vec, GloVe oraz modele transformatorowe, takie jak BERT i DistilBERT, aby uchwycić znaczenie słów w ich kontekście.
+
+Mimo że embeddingi pozwalają na uchwycenie złożonych relacji semantycznych między słowami w wielowymiarowej przestrzeni, ich wewnętrzne reprezentacje są z natury nieinterpretowalne -- tzw. black box. W tej sytuacji SHAP okazał się kluczowym narzędziem, które pozwalało:
+
+\begin{itemize}
+    \item {Zidentyfikować wpływ poszczególnych słów na wynik klasyfikacji, pomimo że ich wektorowa reprezentacja nie jest bezpośrednio zrozumiała.}
+
+    \item{Pokazać, jak subtelne różnice emocjonalne są wychwytywane przez model: np. różnica między słowami “sad” i “devastated” może nie być znacząca w klasycznym podejściu leksykalnym, ale embeddingi wykazują, że niosą one inny ładunek emocjonalny, co SHAP potrafi zilustrować w kontekście predykcji.}
+
+    \item {Zwiększyć przejrzystość działania modeli transformatorowych: dzięki SHAP, złożone decyzje podejmowane przez modele takie jak BERT stają się bardziej zrozumiałe, co przekształca je z \textit{,,czarnych skrzynek''} w narzędzia, które oferują wgląd w proces decyzyjny.}
+\end{itemize}
+
+\chapter{Metodyka badań}
+Rozdział ten prezentuje szczegółowy opis zastosowanej metodyki badawczej, obejmującej zarówno charakterystykę danych użytych do eksperymentów, jak i zastosowane narzędzia oraz techniki modelowania. Właściwy dobór zbioru danych, architektury modelu oraz metod wyjaśniania predykcji jest kluczowy dla rzetelnej oceny jakości klasyfikacji emocji w tekstach.  
+
+W pierwszej części rozdziału omówiony został zbiór danych \textit{GoEmotions}, obejmujący proces jego tworzenia, zakres emocji oraz ograniczenia, jakie mogą wynikać z jego charakterystyki. Następnie przedstawiono model bazowy oparty na architekturze BERT, wraz z opisem procedury jego inicjalizacji i treningu.  
+
+Ostatnia część rozdziału poświęcona jest technikom wyjaśnialności zastosowanym w badaniach. Zaprezentowano metody SHAP oraz LIME, które umożliwiają analizę wpływu poszczególnych słów na predykcje modelu i stanowią podstawę dalszej oceny jakości wyjaśnień. Rozdział ten tworzy fundament metodologiczny dla analiz i wyników przedstawionych w kolejnych częściach pracy.
+
+\section{Zbiór ,,GoEmotions''}
+Do trenowania i ewaluacji modelu NLP opartego na architekturze BERT wykorzystano zbiór danych \textit{GoEmotions}, opracowany w 2020 roku przez zespół badawczy Google Research. Jest to jeden z najbardziej znanych i obszernych publicznych zestawów danych przeznaczonych do wieloklasowej klasyfikacji emocji na podstawie tekstu. Struktura zbioru danych została przedstawiona w tabeli \ref{tab:structure_goEmotions}.
+
+\newpage
+\begin{table}[h!]
+	\centering
+	\renewcommand{\arraystretch}{1.1}
+	\small
+	\begin{tabularx}{0.9\textwidth}{|c|X|c|c|}
+		\hline
+		\textbf{ID} & \textbf{Text} & \textbf{Dominant Emotion} & \textbf{Emotions List} \\ \hline
+		0 & That game hurt. & sadness & [sadness] \\ \hline
+		1 & >sexuality shouldn't be a grouping category I... & admiration & [admiration] \\ \hline
+		2 & You do right, if you don't care then fuck 'em! & neutral & [neutral] \\ \hline
+		3 & Man I love reddit. & love & [love] \\ \hline
+		4 & [NAME] was nowhere near them, he was by the Fa... & neutral & [neutral] \\ \hline
+		\multicolumn{4}{|c|}{\dots} \\ \hline
+		9996 & A divided Korea, is a divided Asia. The day Ko... & amusement & [amusement] \\ \hline
+		9997 & David Cameron's jealous. & neutral & [neutral] \\ \hline
+		9998 & Your pretty late, it was announced a while ago & gratitude & [gratitude] \\ \hline
+		9999 & Damn, you could make money out of this. Come p... & approval & [approval] \\ \hline
+	\end{tabularx}
+	\caption{Fragment zbioru danych z etykietami dominujących emocji i listą emocji.}
+	\label{tab:structure_goEmotions}
+\end{table}
+
+
+\subsection{Geneza i cel stworzenia zbioru}
+Celem autorów \textit{GoEmotions} było dostarczenie dużego, zróżnicowanego i ręcznie oznaczonego zbioru przykładów językowych, który pozwoliłby badać i rozwijać systemy rozpoznawania emocji w tekście. Dane miały obejmować szeroki zakres emocji pozytywnych, negatywnych, jak i neutralnych. Wybór platformy ,,Reddit'' jako źródła danych był podyktowany dużą różnorodnością tematyczną dyskusji, bogactwem języka oraz obecnością spontanicznych, naturalnych wypowiedzi użytkowników. Pierwotna liczba wypowiedzi w wynosiła 58 009 zgodnie z~ artukułem \textit{,,GoEmotions: A Dataset of Fine-Grained Emotions''} \cite{GoEmotions}. Jednak dostępne podziały w repozytoriach (,,TensorFlow Datasets'', ,,Kaggle'') zawierają łącznie 54 263 przykłady, co najprawdopodobniej wynika z procesów filtracji lub ograniczeń jakości danych.
+
+\subsection{Zawartość i zakres emocji}
+Zbiór obejmuje 58 009 wypowiedzi (głównie zdań lub krótkich fragmentów tekstu) w języku angielskim. Każdy przykład został oznaczony przynajmniej jedną z 27 klas emocjonalnych lub jako ,,neutral''. Pełna lista kategorii wraz z odpowiadającymi im angielskimi nazwami obejmuje:
+
+\begin{itemize}
+    \item {\textbf{Pozytywne}}: podziw (\textit{ang. admiration}), rozbawienie (\textit{ang. amusement}), aprobata (\textit{ang. approval}), troska (\textit{ang. caring}), ciekawość (\textit{ang. curiosity}), pragnienie (\textit{ang. desire}), ekscytacja (\textit{ang. excitement}), wdzięczność (\textit{ang. gratidue}), radość (\textit{ang. joy}), miłość (\textit{ang. love}), optymizm (\textit{ang. optimism}), duma (\textit{ang. pride}), ulga (\textit{ang. relief}), uświadomienie sobie czegoś (\textit{ang. realization}).
+    \item {\textbf{Negatywne}}: złość (\textit{ang. anger}), irytacja (\textit{ang. annoyonce}), zmieszanie (\textit{ang. confusion}), rozczarowanie (\textit{ang. dissappointment}), dezaprobata (\textit{ang. disapproval}), obrzydzenie (\textit{ang. disgust}), zakłopotanie (\textit{ang. embarrrassment}), strach (\textit{ang. fear}), żal (\textit{ang. grief}), zdenerwowanie (\textit{ang. nervousness}), wyrzuty sumienia (\textit{ang. remorse}), smutek (\textit{ang. sandess}).
+    \item {\textbf{Neutralne}}: \textit{ang. neutral}.
+\end{itemize}
+
+Dzięki tak szerokiemu zestawowi etykiet \textit{GoEmotions} umożliwia badanie złożonych stanów emocjonalnych, wykraczających poza klasyczne rozróżnienie ,,pozytywne-negatywne''.
+
+\subsection{Proces anotacji}
+Anotacje zostały wykonane przez grupę profesjonalnych anotatorów, którzy zostali przeszkoleni w zakresie definicji poszczególnych emocji. Każda wypowiedź była oceniana niezależnie przez kilku anotatorów. Pozwoliło to na oszacowanie współczynnika zgodności (\textit{ang. inter-annotator agreement}) i zminimalizowanie subiektywności ocen. Do końcowej wersji zbioru trafiły tylko te przypisania, które osiągnęły wymaganą zgodność między anotatorami. Co istotne, \textit{GoEmotions} jest zbiorem wielu etykiet (\textit{ang. multi-label dataset}) -- oznacza to, że pojedynczy przykład może zostać przypisany do więcej niż jednej kategorii emocjonalnej. Model został przystostosowany do takiego stanu rzeczy i radzi sobie w takich sytuacjach. 
+
+\subsection{Struktura zbioru i podział na podzbiory}
+Oryginalny zbiór dostępny jest w formacie CSV oraz w formacie kompatybilnym z biblioteką \textit{Hugging Face Datasets}. Każdy rekord zawiera co najmniej:
+
+\begin{itemize}
+    \item identyfikator przykładu
+    \item treść wypowiedzi (text)
+    \item listę przypisanych emocji
+    \item ewentualne dodatkowe metadane (np. informację o anonimowości)
+\end{itemize}
+
+Dane są podzielone na trzy podzbiory:
+
+\begin{enumerate}
+    \item Zbiór treningowy -- 43 410 przykładów ($\approx 75\%$)
+    \item Zbiór walidacyjny -- 5 426 przykładów ($\approx 9\%$)
+    \item Zbiór testowy -- 9 173 przykłady ($\approx 16\%$)
+\end{enumerate}
+
+Podział ten został wykonany w sposób losowy, ale z zachowaniem proporcji poszczególnych klas w każdym podzbiorze.
+
+\subsection{Potencjalne ograniczenia zbioru}
+Mimo wielu zalet, \textit{GoEmotions} posiada także pewne ograniczenia:
+\begin{itemize}
+
+    \item {Wszystkie dane są w języku angielskim} -- w przypadku zastosowania w innych językach konieczne jest tłumaczenie lub trenowanie modeli wielojęzycznych.
+
+    \item {Źródło danych (Reddit)} -- charakteryzuje się specyficznym stylem językowym, często nieformalnym, zawierającym slangi, skróty i odniesienia kulturowe, co może utrudniać adaptację modeli do tekstów z innych domen.
+
+    \item {Ograniczona liczba przykładów} -- dla niektórych rzadkich emocji powoduje nierównowagę klas (class imbalance), co może wpływać na skuteczność klasyfikacji.
+\end{itemize}
+
+
+\subsection{Znaczenie w badaniach}
+Zbiór \textit{GoEmotions} jest powszechnie wykorzystywany w badaniach naukowych dotyczących przetwarzania języka naturalnego. Najczęściej w kontekście analizy emocji, analizy sentymentu i~ systemów rekomendacyjnych, które uwzględniają nastrój użytkownika. Dzięki swojej wielkości, różnorodności i jakości anotacji, zbiór ten stanowi jeden z najlepszych dostępnych benchmarków do porównywania skuteczności różnych architektur modeli NLP. Dane są publicznie dostępne w repozytoriach takich jak \textit{Hugging Face Datasets}, \textit{Google Research GitHub} oraz na platformie \textit{Kaggle}, co pozwala na ich łatwą integrację z istniejącymi narzędziami do uczenia maszynowego.
+
+
+\section{Model oparty na architekturze BERT}
+Model BERT (\textit{ang. Bidirectional Encoder Representations from Transformers}) -- jest to przełom w dziedzinie przetwarzania języka naturalnego. Wprowadzana rewolucyjne podejście w odniesieniu do reprezentacji językowych. Został zaprezentowany przez badaczy z firmy Google AI Language w 2018 roku. Został opisany w artykule ,,\textit{BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding}'' \cite{BERT} jako model umożliwiający pretrenowanie głębokich reprezentacji językowych z nieoznakowanego tekstu. Uwzględnia on oba konteksty, prawy oraz lewy w każdym z jego warstw. Podrozdział ten zawiera charakterystykę architektury BERT oraz opis procesu przygotowania modelu do zadania klasyfikacji emocji, w tym sposób jego inicjalizacji oraz szczegóły dotyczące treningu.
+
+\subsection{Charakterystyka architektury BERT}
+\paragraph{Architektura modelu}
+BERT opiera się na architekturze transformera, wykorzystując jedynie część enkodera (\textit{ang. encoder}) z oryginalnego modelu transformera. Składa się z wielu warstw samouważności (\textit{ang. self-attention}). Pozwalają one modelowi na efektywne przetwarzanie danych. To znaczy, że model patrzy na całe zdanie lub sekwencje na raz. Dopiero wtedy model ocenia, które inne słowa w zdaniu są istotne dla zrozumienia konkretnego słowa. Wyróżnia to go od wcześniejszych modeli, ponieważ BERT jest głęboko dwukierunkowy. Oznacza to, że podczas przetwarzania tekstu uwzględnia zarówno kontekst poprzedzający, jak i następujący po danym słowie. Główne parametry modelu to:
+
+\begin{itemize}
+\item {L} -- liczba warstw (bloków Transformerów),
+\item {H} -- rozmiar ukrytej reprezentacji (hidden size),
+\item {A} -- liczba głów self-attention (attention heads).
+\end{itemize}
+
+W modelu BERT autorzy artykułu ,,\textit{BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding}'' \cite{BERT} przedstawiają dwa główne architektury modelu BERT, a~ mianowicie:
+
+\begin{enumerate}
+    \item BERTBASE:
+
+    -- 12 warstw (L=12)
+
+    --ukryty rozmiar 768 (H=768)
+
+    --12 głów self-attention (A=12)
+
+    --około 110 milionów parametrów
+
+    \item BERTLARGE:
+    
+    -- 24 warstwy (L=24)
+    
+    -- ukryty rozmiar 1024 (H=1024)
+    
+    -- 16 głów self-attention (A=16)
+    
+    -- około 340 milionów parametrów
+\end{enumerate}
+
+Aby BERT mógł obsługiwać różne typy zadań, wejście do modelu zostało zaprojektowane w sposób elastyczny i jednoznaczny. Wszystko po to, aby mogło reprezentować jedno zdanie jak i parę zdań. BERT używa tokenizacji opartą na WordPiece z słownikiem o wielkości 30 000 tokenów. WordPiece to metoda polegająca na dzieleniu słów na części, np. ,,playin'' → ,,play + \#\#ing''. Każde wejście do modelu jest sekwencją tokenów zawierającą:
+
+\begin{itemize}
+   \item {[CLS]} -- specjalny token dodawany na początek każdej sekwencji; jego reprezentacja (wektor) na wyjściu modelu służy do klasyfikacji (np. do analizy emocji, sentymentu, itp.).
+   \item {[SEP]} -- specjalny token oddzielający dwa zdania w parze (np. pytanie i odpowiedź).
+   \item {Tokeny zdania (lub zdań)} -- czyli właściwy tekst po tokenizacji.
+\end{itemize}
+
+
+Dla każdego tokenu jego ostateczna reprezentacja wejściowa to suma trzech składników:
+
+\begin{enumerate}
+    \item Token embedding -- wektor danego tokenu (np. ,,dog'', ,,\#\#ing'').
+    \item Segment embedding -- wskazuje, czy token należy do zdania A czy zdania B.
+    \item Position embedding -- informacja o pozycji tokenu w sekwencji.
+\end{enumerate}
+
+
+\paragraph{Pretrenowanie modelu}
+Proces pretrenowania BERT składa się z dwóch głównych zadań:
+
+\begin{itemize}
+	\item \textbf{Masked Language Model (MLM):} Polega na tym, że niektóre słowa w zdaniu są losowo maskowane. Model ma za zadanie przewidzieć oryginalne słowo na podstawie kontekstu. Takie podejście jest efektywne, ponieważ pozwala wykorzystać cały kontekst zdania jednocześnie eliminując ograniczenia wynikające z jednostronnego przetwarzania tekstu.
+	
+	\item \textbf{Next Sentence Prediction (NSP):} W tym zadaniu model otrzymuje pary zdań i musi przewidzieć, czy drugie zdanie wynika logicznie z pierwszego. To zadanie jest szczególnie przydatne w kontekstach wymagających zrozumienia relacji między zdaniami, takich jak rozumienie języka czy odpowiadanie na pytania.
+\end{itemize}
+
+
+\paragraph{Fine-tuning}
+Po etapie pretrenowania następuje proces tzw. ,,fine-tuningu''. Model BERT uczy się ogólnych reprezentacji języka na bardzo dużych, nieoznakowanych zbiorach tekstów. Dostosowuje on wcześniej wytrenowany model, do konkretnego zadania NLP, w zależności od tego, jakie zadanie jest w danym momencie potrzebne. Przykłady: analiza sentymentu, klasyfikacja emocji, rozpoznawanie nazw własnych, odpowiadanie na pytania.
+
+\paragraph{Ogólny przebieg procesu:}
+Do pretrenowanego modelu BERT, na końcu, dodawana jest prosta warstwa neuronowa. Musi być ona dopasowana do konkretnego zadania (np. klasyfikacja). Podczas fine-tuningu aktualizowane są wagi całego modelu. Cała architektura BERT pozostaje bez większych zmian. Dzięki temu można efektywnie wykorzystać już wytrenowane cechy bez konieczności trenowania modelu od podstaw.
+
+
+\subsection{Inicjalizacja i trening modelu}
+W celu rozwiązania zadania klasyfikacji emocji na podstawie tekstu zastosowano model typu BERT (\textit{ang. Bidirectional Encoder Representations from Transformers}). Dokładnie jest to \texttt{bert-base-uncased}, udostępniony i zaczerpnięty z  biblioteki \textit{Hugging Face Transformers}. Wstępnie model ten został  wytrenowany na dużych ilościach teksu w języku angielskim, więc posiada bardziej ogólną wiedzę językową. Dzięki temu podejściu model BERT umożliwia adaptację do konkretnego zadania poprzez proces fine-tuningu.
+
+\paragraph{Inicjalizacja modelu}
+Model został zainicjalizowany na bazie architektury BERT przy użyciu klasy \texttt{BertFor SequenceClassification~} z biblioteki \textit{Transformers}. W celu dostosowania go do zadania klasyfikacji wieloetykietowej dodano na końcu nową warstwę wyjściową (klasyfikacyjną), której liczba neuronów odpowiada liczbie unikalnych etykiet emocji w zastosowanym zbiorze danych. Liczba ta została określona przez parametr \texttt{num\_labels}, przyjmujący wartość równą długości zbioru etykiet 
+uzyskanych z obiektu \texttt{MultiLabelBinarizer} (\texttt{len(mlb.classes\_)}). Dodatkowo ustawiono parametr \texttt{problem\_type=,,multi\_label\_classification''}, co pozwala modelowi przewidywać wiele etykiet jednocześnie dla pojedynczego tekstu (każda etykieta jest oceniana niezależnie). Dzięki temu architektura BERT została przystosowana do wieloetykietowego uczenia nadzorowanego, a nie klasycznej klasyfikacji jednoetykietowej. Autorzy Lewis Tunstall, Leandro von Werra i Thomas Wolf w swojej książce \textit{,,Natural Language Processing with Transformers (Revised Edition)''} \cite{NaturalLanguageProcessing} w rozdziale \textit{,,Text Classification''} opisują budowę modelu i~ klasyfikacyjnej warstwy. Może to pomóc bardziej zrozumieć konfigurację i inicjalizację modelu.
+
+\paragraph{Parametry uczenia}
+Proces dalszego uczenia modelu został skonfigurowany za pomocą klasy 
+\texttt{TrainingArguments}, która umożliwia łatwe ustawienie najważniejszych parametrów trenowania. Ustalono, że model będzie trenowany przez 3 epoki, czyli trzy pełne przejścia przez cały zbiór treningowy. Wielkość partii danych (\textit{batch size}) została ustawiona na 16, co oznacza, że podczas jednej iteracji model przetwarza jednocześnie 16 przykładów. Tak dobrana wielkość partii stanowi kompromis między dokładnością a czasem trenowania. 
+
+Dodatkowo zastosowano mechanizm \textit{weight decay} z wartością 0.01, który ogranicza przeuczenie modelu poprzez karanie zbyt dużych wag, co poprawia uogólnianie na nowych danych. Zastosowano również \textit{learning rate} równy \texttt{2e-5} oraz współczynnik \textit{warmup\_ratio} równy 0.1, który stopniowo zwiększa tempo uczenia w początkowych iteracjach, stabilizując proces optymalizacji. W książce \textit{,,Natural Language Processing with Transformers (Revised Edition)''} \cite{NaturalLanguageProcessing} autorzy Lewis Tunstall, Leandro von Werra i Thomas Wolf w rozdziale \textit{,,Text Classification''} omawiają instalację modelu \texttt{bert-base-uncased}, konfigurację \texttt{TrainingArguments} (liczba epok, batch size, weight decay) oraz użycie \texttt{Trainer} do trenowania i ewaluacji.
+
+\paragraph{Proces trenowania}
+Do trenowania modelu wykorzystano klasę \texttt{Trainer} z biblioteki \textit{Hugging Face Transformers}. Upraszcza to cały proces uczenia, ponieważ automatyzuje wiele aspektów. Odpowiada za: właściwe przetwarzanie danych, wykonywanie trenowania i ewaluacji, zapisywanie wag modelu po epokach oraz prowadzenie logów treningu. Nie ma potrzeby samodzielnego pisania kodu, który musiałby być odpowiedzialny za pętle treningowe czy ewaluacyjne. Klasa \texttt{Trainer} robi to za użytkowników, co znacznie przyspiesza pracę i zmniejsza ryzyko popełniania błędów. Do uczenia wykorzystano przygotowane wcześniej zbiory danych treningowych i testowych, zawierające odpowiednio zakodowane przykłady tekstów i odpowiadające im etykiety emocji. Użycie jak i~ samą klasę \texttt{Trainer} opisano także w książce \textit{,,Natural Language Processing with Transformers (Revised Edition)''} \cite{NaturalLanguageProcessing} autorzy Lewis Tunstall, Leandro von Werra i Thomas Wolf w rozdziale \textit{,,Text Classification''}.
+
+
+\section{Inicjalizacja i opis technik wyjaśnialności}
+Modele uczenia maszynowego stają się coraz bardziej złożone. Idzie za tym coraz większa potrzeba zrozumienia mechanizmów, które stoją za decyzjami, jakie model podejmuje w trakcie swojego działania. Takie modele jak BERT są wysoko skuteczne, ale jednocześnie trudne do interpretacji. Dzieje się to przez to, że pracują na tzw. ,,czarnych skrzynkach''. Dlatego istotnym elementem podczas pracy z takimi modelami jest stosowanie technik wyjaśnialności. Pozwalają one lepiej zrozumieć działanie modelu oraz ocenić jego wiarygodność.
+
+W niniejszym podrozdziale omówiono dwie popularne i szeroko stosowane metody wyjaśniania predykcji modeli: SHAP (\textit{ang. SHapley Additive exPlanations)} oraz LIME \textit{(Local Interpretable Model-Agnostic Explanations)}. Obie techniki różnią się podejściem do problemu, ale mają ten sam cel, przybliżenie wpływu poszczególnych cech wejściowych na ostateczną decyzję modelu.
+
+\subsection{SHAP -- SHapley Additive exPlanations}
+SHAP (SHapley Additive exPlanations), czyli jedna z najpopularniejszych metod wyjaśniania działania modeli uczenia maszynowego. Bazuje ona na teorii gier koalicyjnych. Polega ona głównie na przypisanie konkretnej wartości każdej zmiennej wejściowej, która określa, jaki wpływ miała ona na ostateczną predykcję modelu. Wartości te zwą się ,,wartościami Shapleya''. Pojedyncza taka wartość to średni marginalny wkład danej cechy w predykcję uwzględniający wszystkie możliwe kombinacje pozostałych cech. Dlatego ta metoda cechuje się wysoką przejrzystością i matematyczną spójnością.
+
+Wzór na wartość Shapleya dla cechy \( i \) w modelu predykcyjnym:
+
+\[
+\phi_i = \sum_{S \subseteq N \setminus \{i\}} \frac{|S|!\,(|N| - |S| - 1)!}{|N|!} \left[ f(S \cup \{i\}) - f(S) \right]
+\]
+
+Gdzie:
+\begin{itemize}
+  \item \( N \) -- zbiór wszystkich cech,
+  \item \( S \subseteq N \setminus \{i\} \) --  każdy możliwy podzbiór cech nie zawierający \( i \),
+  \item \( f(S) \) -- wartość funkcji predykcyjnej dla zbioru cech \( S \),
+  \item \( \phi_i \) -- wartość Shapleya dla cechy \( i \),
+  \item \( |S| \) -- liczność zbioru \( S \).
+\end{itemize}
+
+To oznacza, że dla każdej cechy \( i \) rozważamy wszystkie możliwe podzbiory pozostałych cech S, liczymy jak zmienia się predykcja, gdy dodamy i, a następnie uśredniamy jego marginesowy wkład ważony odpowiednio liczbą permutacji. Dzięki temu podejściu każde wyjaśnienie jest sprawiedliwe (fair) -- suma wszystkich wartości Shapleya równa się kwocie predykcji minus wartość bazowa, zgodnie z aksjomatem efektywności \textit{(ang. efficiency)}. Ponadto metoda spełnia inne kluczowe własności: symetrię \textit{(ang. symmetry)}, gdy cechy są równoważne, otrzymują takie same wartości; dodawalność/linearity, pozwalając na łączenie wyjaśnień; oraz null‑player, czyli cecha bez wpływu dostaje wartość zero.
+
+Obliczanie wartości Shapleya wprost jest kosztowne -- mamy do czynienia z kombinacją wszystkich możliwych podzbiorów cech, co rośnie wykładniczo. SHAP wprowadza specjalne optymalizacje, np. TreeSHAP dla modeli opartych na drzewach, który wykorzystuje strukturę drzew, by obliczać wartości efektywnie w czasie wielomianowym. W przypadku sieci neuronowych pojawiło się też DeepSHAP, łączące metodę DeepLIFT z własnościami wartości Shapleya, co pozwala na efektywne obliczenia dla głębokich modeli.
+
+SHAP jest dość uniwersalną metodą. Może być stosowana do prostych, klasycznych modeli takie jak drzewa decyzyjne, ale też do bardziej złożonych struktur uczenia głębokiego, na przykład modeli opartych na transformerach. Dodatkowo, umożliwia przeprowadzenie analizy lokalnej (dla pojedynczych obserwacji), jak i globalnej (dla ogólnego działania modelu). Te cechy sprawiają, że technika SHAP dobrze wpasowuje się w podejście do sztucznej inteligencji wyjaśnialnej \textit{(ang. XAI - Explainable AI)}. Metody wyjaśnialności nabierają coraz większego znaczenia, ponieważ pomagają zrozumieć decyzję maszyn. Wspiera to budowanie zaufania użytkowników do systemów automatycznych podejmujących jakieś wybory. W książce \textit{,,Interpretable Machine Learning: A Guide for Making Black Box Models Explainable''} \cite{SHAP} autor Christoph Molnar szczegółowo opisuje ideę wartości Shapleya jako podstawę dla technik wyjaśnialności modeli predykcyjnych. W rozdziale \textit{,,Local Model-Agnostic Methods''} w sekcji \textit{,,Shapley Values''} autor przedstawia matematyczne uzasadnienie tej metody. Omawia jej kluczowe właściwości, takie jak symetria, efektywność czy dodawalność. Wskazuje również na uniwersalność podejścia SHAP.
+
+Aby możliwa była interpretacja predykcji modelu, który ma za zadanie klasyfikować emocje z tekstu, zastosowano gotowy mechanizm. Jest to tzw. ,,pipeline klasyfikacyjny'', udostępniany przez bibliotekę Transformers. Łączy on już wytrenowany model typu BERT oraz tokenizer. Pozwala to na bezpośrednie przetwarzanie tekstów wejściowych i uzyskiwanie klasy emocji jako wyniku działania modelu. Pipeline automatycznie wykonuje tokenizację, przygotowuje tensory, przesyła dane na odpowiednie urządzenie obliczeniowe (CPU lub GPU), a także dokoduje wyniki wyjściowe modelu.
+
+Na potrzeby interpretacji zastosowano obiekt typu SHAP Explainer, który został utworzony na podstawie wspomnianego pipeline’u. Dzięki temu, metoda SHAP mogła wyjaśnić predykcje modelu, traktując cały pipeline jako funkcję predykcyjną. Wybrano próbkę kilku przykładowych tekstów z części testowej zbioru danych, które następnie poddano analizie wyjaśniającej. Dla każdej z próbek wyliczono wartości SHAP. Wskazują one na wkład poszczególnych tokenów w końcową klasyfikację. 
+ 
+Wizualizacja opierająca się na wynikach SHAP umożliwia zbadanie, które fragmenty tekstu miały kluczowe znaczenie dla decyzji jaką podjął model. W rozdziale ,,Local Model-Agnostic Methods'' książki \textit{,,Interpretable Machine Learning: A Guide for Making Black Box Models Explainable''} \cite{SHAP} w sekcji \textit{,,SHAP (SHapley Additive exPlanations)''} Christoph Molnar przedstawia praktyczne zastosowania SHAP, uwzględniając zarówno KernelSHAP, jak i optymalizacje takie jak TreeSHAP. Autor pokazuje, jak wizualizować wartości wpływu (m.in. za pomocą force plots), co pozwala precyzyjnie identyfikować wpływ poszczególnych cech (czyli tokenów w naszym przypadku) na decyzję modelu.
+
+
+\subsection{LIME -- Local Interpretable Model-Agnostic Explanations}
+LIME, czyli \textit{ang. (Local Interpretable Model-Agnostic Explanations)}, to technika, która jest często stosowana do wyjaśniania decyzji podejmowanych przez modele typu ,,czarna skrzynka''. Należy do grupy metod post-hoc oraz model-agnostic. Oznacza to, że może być stosowana niezależnie od rodzaju modelu oraz także po jego wytrenowaniu. Podstawowym celem tej metody jest uzyskanie lokalnego wyjaśnienia predykcji poprzez zbudowanie prostego i zrozumiałego modelu. Ma on bowiem naśladować działanie bardziej skomplikowanego modelu, ale tylko w~ najbliższym otoczeniu konkretnego przykładu. Proces działania LIME można podzielić na następujące kroki:
+
+\begin{enumerate}
+    \item \textbf{Generowanie perturbacji} -- wokół wyjaśnianego przykładu tworzy się zestaw danych przez losowe modyfikacje zmiennych (dla obrazów -- superpiksele, w tekście -- maskowanie słów, w danych tabelarycznych -- zakłócenia wartości).
+    
+    \item \textbf{Predykcje czarnej skrzynki} -- każda zmodyfikowana instancja jest oceniana przez oryginalny model.
+    
+    \item \textbf{Ważenie i trenowanie modelu lokalnego} -- każdemu przykładowi przypisuje się wagę proporcjonalną do podobieństwa do oryginału (np. kernel odległości). Następnie trenowany jest prosty model $g \in \mathcal{G}$, minimalizując funkcję celu:
+    
+    \[
+    \underset{g \in \mathcal{G}}{\arg\min} \; \mathcal{L}(f, g, \pi_x) + \Omega(g)
+    \]
+    
+    gdzie $\mathcal{L}$ to funkcja straty mierząca niezgodność predykcji modelu lokalnego $g$ z predykcjami modelu oryginalnego $f$, $\pi_x$ to funkcja podobieństwa (np. kernel Gaussa), a $\Omega(g)$ to kara za złożoność modelu $g$.
+    
+    \item \textbf{Interpretacja wyników} -- współczynniki wytrenowanego modelu $g$ wyjaśniają wpływ poszczególnych cech na decyzję modelu dla analizowanej instancji.
+\end{enumerate}
+
+Metoda LIME opiera się na założeniu, że skomplikowane modele mogą być dobrze przybliżone prostym modelem. Ale w niewielkim i lokalnym obszarze przestrzeni danych.
+
+Metoda LIME ma kilka zalet, ale najważniejszą z nich jest jej uniwersalność. Może ona być stosowana do różnorodnych typów danych, takich jak tekst, obrazy czy dane tabelaryczne. Na dodatek, nie wymaga znajomości wewnętrznej struktury modelu, przez co jest elastyczna. Wyjaśnienia generowane przez LIME są stosunkowo proste i łatwe do zrozumienia jak i wizualizacji, a to ułatwia interpretacje wyników. Nawet osoby bez specjalistycznego przygotowania matematycznego mogą być w stanie odczytać wyniki.
+
+Metoda ta ma jednak pewne ograniczenia. Jednym z głównych wad LIME jest niestabilność wyników. Przy każdym uruchomieniu procedury, ze względu na losowość w generowaniu perturbacji, można uzyskać nieco inne wyjaśnienie. Ponadto wyjaśnienia te mają charakter wyłącznie lokalny. Oznacza to, że nie można na ich podstawie wnioskować o ogólnym działaniu modelu. LIME jest też wrażliwy na dobór parametrów, takich jak liczba perturbacji czy rozkład wag. Kolejnym wyzwaniem może być wysoki koszt obliczeniowy związany z koniecznością przeliczenia predykcji dla wielu wariantów danych. W książce \textit{,,Interpretable Machine Learning. A Guide for Making Black Box Models Explainable''} \cite{SHAP} Christoph Molnar, w rozdziale \textit{,,Model-Agnostic Methods''} w sekcji \textit{,,Local Surrogate (LIME)''} przedstawia LIME jako elastyczną i intuicyjną metodę lokalnej wyjaśnialności, która przy pomocy prostego, interpretowalnego modelu (np. regresji liniowej) wyjaśnia decyzje czarnych skrzynek poprzez perturbacje danych i ważone dopasowanie modeli pomocniczych. Zaznacza jej uniwersalność -— działanie na tekstach, obrazach i danych tabelarycznych -- oraz zwraca uwagę na główne ograniczenia, takie jak niestabilność wyników i trudność w doborze odpowiedniego sąsiedztwa (kernelu).
+
+W celu zastosowania techniki LIME do analizy działania modelu klasyfikującego emocje z~ tekstu, wykorzystano bibliotekę lime oraz moduł LimeTextExplainer. Na początku zdefiniowano listę nazw klas (etykiet emocji) na podstawie słownika labels\_dict. Kluczowym elementem implementacji jest funkcja predict\_test, która przyjmuje listę tekstów, a następnie, z wykorzystaniem tokenizera oraz modelu, oblicza rozkład prawdopodobieństwa dla każdej klasy. Funkcja ta jest zgodna z wymaganym przez LIME interfejsem i zwraca wynik w postaci macierzy numerycznej typu NumPy.
+
+Następnie stworzono instancję obiektu LimeTextExplainer, przekazując do niej nazwę klas. Do objaśnienia wybrano przykładowy tekst z listy testowej (test\_texts) i zastosowano metodę explain\_instance, która generuje lokalne wyjaśnienie predykcji modelu dla tej konkretnej instancji. Parametr num\_features=10 wskazuje, że objaśnienie ma obejmować dziesięć najbardziej wpływowych cech (słów lub fraz). Ostatecznie, wygenerowane wyjaśnienie jest prezentowane w~ formie interaktywnej wizualizacji za pomocą exp.show\_in\_notebook(text=True).
+
+
+\chapter{Wyniki oraz badania}
+Rozdział ten prezentuje proces eksperymentalny oraz uzyskane wyniki badań dotyczących klasyfikacji emocji w tekstach z wykorzystaniem architektury BERT oraz technik wyjaśnialności XAI. Analizy obejmują zarówno przygotowanie i przetwarzanie danych wejściowych, jak i ocenę jakości predykcji modelu oraz interpretację wyników przy użyciu metod SHAP i LIME.  
+
+W pierwszej części przedstawiono etapy przygotowania danych do modelu, obejmujące redukcję liczby klas, równoważenie zbioru (oversampling), kodowanie etykiet oraz tokenizację. Następnie zaprezentowano wyniki klasyfikacji, w tym miary jakości i szczegółową analizę skuteczności modelu dla poszczególnych emocji.  
+
+Kolejna część rozdziału poświęcona jest ocenie jakości wyjaśnień generowanych przez techniki XAI. Omówiono wyniki analiz w scenariuszach \textit{multi-label} i \textit{Top-1}, a także przeprowadzono porównanie metod SHAP i LIME z dodatkowymi baseline’ami: TF-IDF, rankingiem częstotliwościowym (Freq) oraz losowym (Random). Dzięki temu możliwe było określenie, w jakim stopniu metody wyjaśnialne przewyższają proste podejścia heurystyczne.  
+
+Ostatnim elementem rozdziału jest analiza wzorców językowych, które w największym stopniu wpływały na decyzje modelu. Rozdział ten dostarcza pełnego obrazu działania modelu zarówno pod kątem efektywności klasyfikacji, jak i interpretowalności uzyskanych wyników, co stanowi podstawę do sformułowania końcowych wniosków.
+
+\section{Przygotowanie danych do modelu}
+Skuteczność każdego modelu w dużym stopniu zależy od jakości i czystości danych wejściowych. Modele przetwarzające język naturalny (NLP) są w szczególności wrażliwe na niespójność w danych. Przed przekazaniem danych do modelu klasyfikacyjnego trzeba je najpierw odpowiednio przetworzyć i przygotować. W kontekście analizy emocji na podstawie tekstu, każdy z etapów ma znaczenie. Z punktu widzenia semantyki języka, jak i również zgodności z~ wymaganiami architektury, w tym przypadku BERT. 
+
+W niniejszym podrozdziale opisane zostały wszystkie kroki, które należy wykonać w celu odpowiedniego przygotowania danych do treningu modelu NLP. Caly proces obejmuje zbalansowanie zbioru danych (oversampling), zakodowanie etykiet emocji w formie liczbowej, tokenizację danych zgodnie z wymaganiami modelu korzystającego z transformerów oraz utworzenie struktury datasetu w bibliotece PyTorch. Na koniec przeprowadzono podział danych na zbiór treningowy i testowy, co pozwala ocenić skuteczność wytrenowanego modelu na danych, których wcześniej nie widział.
+
+\subsection{Redukcja liczby klas}\label{sekcja_redukcja_klas}
+Oryginalny zbiór danych \textit{GoEmotions} zawiera 27 etykiet emocji oraz jedną dodatkową etykietę \textit{neutral}, przypisywaną do wypowiedzi pozbawionych wyraźnego ładunku emocjonalnego. Rozkład liczebności poszczególnych klas jest silnie niezrównoważony -- niektóre emocje, takie jak \textit{neutral} czy \textit{admiration}, występują w setkach lub tysiącach przykładów, podczas gdy inne, jak \textit{grief}, \textit{pride} czy \textit{nervousness}, pojawiają się zaledwie kilkadziesiąt razy. Tak duża dysproporcja między częstością klas prowadzi do sytuacji, w której model może faworyzować najczęstsze emocje i ignorować te rzadkie, co skutkuje obniżoną skutecznością klasyfikacji. Tabela \ref{tab:emocje_count} przedstawia liczebność poszczególnych klas w zbiorze \textit{GoEmotions}, który, na potrzeby eksperymentu został ograniczony do 10000 rekordów.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{|c|l|c|}
+		\hline
+		\textbf{Lp.} & \textbf{dominant\_emotion} & \textbf{count} \\ \hline
+		1 & neutral         & 2633 \\ \hline
+		2 & admiration      & 910  \\ \hline
+		3 & approval        & 756  \\ \hline
+		4 & annoyance       & 544  \\ \hline
+		5 & disapproval     & 420  \\ \hline
+		6 & gratitude       & 406  \\ \hline
+		7 & curiosity       & 388  \\ \hline
+		8 & amusement       & 377  \\ \hline
+		9 & anger           & 367  \\ \hline
+		10 & confusion       & 358  \\ \hline
+		11 & disappointment & 308  \\ \hline
+		12 & optimism       & 258  \\ \hline
+		13 & love           & 255  \\ \hline
+		14 & realization    & 244  \\ \hline
+		15 & excitement     & 241  \\ \hline
+		16 & joy            & 240  \\ \hline
+		17 & caring         & 232  \\ \hline
+		18 & sadness        & 194  \\ \hline
+		19 & surprise       & 161  \\ \hline
+		20 & disgust        & 147  \\ \hline
+		21 & desire         & 136  \\ \hline
+		22 & fear           & 125  \\ \hline
+		23 & remorse        & 89  \\ \hline
+		24 & embarrassment  & 66  \\ \hline
+		25 & relief         & 55  \\ \hline
+		26 & nervousness    & 40  \\ \hline
+		27 & pride          & 28  \\ \hline
+		28 & grief          & 22  \\ \hline
+	\end{tabular}
+	\caption{Liczebności poszczególnych emocji w zbiorze}
+	\label{tab:emocje_count}
+\end{table} 
+
+Aby ograniczyć wpływ tego problemu i uprościć analizę działania modelu trzeba zredukować liczbę klas do dziesięciu najliczniejszych etykiet. W praktyce oznaczało to wybranie dziesięciu emocji o najwyższej liczbie przykładów w zbiorze oraz odrzucenie próbek zawierających wyłącznie rzadkie emocje. Dzięki temu uzyskano zbiór danych, w którym rozkład liczności klas jest mniej skośny, a każda z pozostałych etykiet jest reprezentowana w wystarczającej liczbie przykładów, aby umożliwić modelowi efektywne uczenie.
+
+Tabela \ref{tab:emocje_top10} przedstawia liczebność 10 najliczniejszych klas w zbiorze \textit{GoEmotions}, który został ograniczony do 10000 rekordów.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{|c|l|c|}
+		\hline
+		\textbf{Lp.} & \textbf{dominant\_emotion} & \textbf{count} \\ \hline
+		1 & neutral       & 2633 \\ \hline
+		2 & admiration    & 910  \\ \hline
+		3 & approval      & 756  \\ \hline
+		4 & annoyance     & 544  \\ \hline
+		5 & disapproval   & 420  \\ \hline
+		6 & gratitude     & 406  \\ \hline
+		7 & curiosity     & 388  \\ \hline
+		8 & amusement     & 377  \\ \hline
+		9 & anger         & 367  \\ \hline
+		10 & confusion     & 358  \\ \hline
+	\end{tabular}
+	\caption{Liczebności 10 najczęstszych emocji w zbiorze danych}
+	\label{tab:emocje_top10}
+\end{table}
+
+Takie podejście pozwala skupić proces trenowania modelu na najbardziej reprezentatywnej części zbioru i poprawia stabilność ewaluacji, eliminując przypadkowość wynikającą z niewielkiej liczby przykładów w klasach rzadkich. Redukcja liczby klas jest często stosowaną praktyką w~ zadaniach klasyfikacji wieloklasowej, zwłaszcza na etapie wstępnych eksperymentów, gdy celem jest weryfikacja poprawności działania modelu przed rozszerzeniem go na pełen zestaw etykiet. 
+
+
+\subsection{Nadpróbkowanie (oversampling)}
+W zastosowanym zbiorze danych występowała znaczna nierównowaga liczebności etykiet emocji, co skutkowało faworyzowaniem przez model najczęstszych klas oraz ignorowaniem klas rzadkich. Problem ten jest typowy dla zadań klasyfikacji wieloetykietowej (\textit{multi-label classification}), gdzie każda próbka może posiadać wiele etykiet, a rozkład częstości etykiet jest silnie skośny. Na rysunku \ref{fig:over1} przedstawiono wykres rozkładu klas w zbiorze treningowym.
+ 
+\myfigure{over1}{Rozkład klas przed oversamplingiem}{0.9}
+
+Aby temu przeciwdziałać, zastosowano technikę nadpróbkowania (\textit{ang. oversampling}), której celem było sztuczne wyrównanie liczebności wszystkich klas w treningowym zbiorze danych. Najpierw wszystkie listy etykiet przypisane do próbek zostały przekształcone do postaci macierzy binarnej, w której każdy wiersz reprezentuje pojedynczą próbkę, a każda kolumna odpowiada jednej etykiecie emocji. Następnie obliczono liczebność wystąpień każdej etykiety i określono, która z nich występuje najczęściej. Dla każdej etykiety rzadziej występującej zidentyfikowano wszystkie przypisane do niej próbki i utworzono ich dodatkowe kopie w takiej liczbie, aby liczba przykładów zawierających daną etykietę zrównała się z liczebnością etykiety najczęstszej. Wszystkie tak powielone zbiory zostały następnie połączone w jeden zbiór danych, w którym każda etykieta jest reprezentowana w podobnej liczbie przykładów, co pozwala zminimalizować problem niezrównoważonego rozkładu klas. Dodatkowo, w celu umożliwienia późniejszej wizualizacji, każdej próbce przypisano pojedynczą etykietę dominującą odpowiadającą jednej z występujących w jej wektorze etykiet.
+
+Zastosowane podejście jest formą nadpróbkowania na poziomie etykiet, polegającą na deterministycznym powielaniu przykładów zawierających rzadkie klasy. Nie tworzy ono nowych przykładów syntetycznych, lecz zwiększa liczność istniejących przykładów, co umożliwia modelowi skuteczniejsze uczenie się cech również rzadkich emocji (np. \textit{,,disgust''}, \textit{,,surprise''}) zamiast faworyzowania najczęściej występującej klasy (\textit{,,neutral''}). Metoda ta jest opisana w książce \textit{,,Imbalanced Learning: Foundations, Algorithms, and Applications''} \cite{ImbalancedLearning} (rozdział 2, sekcja \textit{,,Sampling Methods''}) jako jedna z podstawowych technik radzenia sobie z niezbalansowanymi zbiorami danych.
+
+Proces nadpróbkowania został zaimplementowany w kilku etapach. Najpierw wszystkie listy etykiet przypisane do próbek zostały przekształcone do postaci macierzy binarnej, w której każdy wiersz reprezentuje pojedynczą próbkę, a każda kolumna odpowiada jednej etykiecie emocji. Następnie obliczono liczebność wystąpień każdej etykiety i określono, która z nich występuje najczęściej. Dla każdej etykiety rzadziej występującej zidentyfikowano wszystkie przypisane do niej próbki i utworzono ich dodatkowe kopie w takiej liczbie, aby liczba przykładów zawierających daną etykietę zrównała się z liczebnością etykiety najczęstszej. Wszystkie tak powielone zbiory zostały następnie połączone w jeden zbiór danych, w którym każda etykieta jest reprezentowana w podobnej liczbie przykładów, co pozwala zminimalizować problem niezrównoważonego rozkładu klas. Dodatkowo, w celu umożliwienia późniejszej wizualizacji, każdej próbce przypisano pojedynczą etykietę dominującą odpowiadającą jednej z występujących w jej wektorze etykiet. Na rysunku \ref{fig:over2} przedstawiono wykres rozkładu klas w zbiorze treningowym po zastosowaniu oversamplingu.
+
+
+\myfigure{over2}{Rozkład klas po oversamplingu}{0.9}
+
+Wybrano właśnie to rozwiązanie, ponieważ jest ono bardzo proste i szybkie w implementacji oraz nie wprowadza nowych, sztucznie wygenerowanych danych, co minimalizuje ryzyko wprowadzenia szumu do zbioru. Jest to istotne zwłaszcza w przypadku tekstów, gdzie generowanie syntetycznych przykładów (np. metodami typu SMOTE) może skutkować powstawaniem nielogicznych lub językowo niepoprawnych treści. Dla średniej wielkości zbioru i ograniczonej liczby etykiet nadpróbkowanie przez powielanie jest wystarczające, aby umożliwić modelowi skuteczne uczenie się cech rzadkich klas bez istotnego zwiększania ryzyka przeuczenia.
+
+Wadą tej metody jest możliwość zwiększenia redundancji i potencjalnego przeuczenia modelu, ponieważ nowe przykłady są jedynie kopiami istniejących danych. Mimo to, dzięki swojej prostocie, szybkości działania i łatwej interpretacji, metoda ta dobrze sprawdza się w kontekście zadań multi-label przy średnich rozmiarach zbiorów oraz pozwala skutecznie zbalansować dane wejściowe do dalszego etapu trenowania modelu.
+
+
+\subsection{Kodowanie etykiet emocji}
+W przypadku klasyfikacji wieloetykietowej konieczne było przekształcenie etykiet emocji z~ postaci tekstowej (np. \textit{anger}, \textit{confusion}) do postaci numerycznej. Proces ten jest niezbędny, ponieważ modele uczenia maszynowego nie mogą operować na etykietach w formie tekstowej i~ wymagają ich reprezentacji liczbowych, które umożliwiają obliczanie funkcji straty i aktualizację wag podczas procesu uczenia. W kontekście klasyfikacji wieloetykietowej pojedyncza próbka może być przypisana do wielu klas jednocześnie, co dodatkowo komplikuje proces przygotowania etykiet.
+
+Do tego celu zastosowano metodę \textit{binary label encoding} dostępną w bibliotece \texttt{scikit-learn} poprzez klasę \texttt{MultiLabelBinarizer}. Każda lista etykiet przypisana do przykładu tekstowego została przekształcona w postać wektora binarnego. W powstałej macierzy każdy wiersz odpowiada jednej próbce, a każda kolumna jednej z wybranych emocji. Wartość 1 w danej kolumnie oznacza przypisanie tej emocji do próbki, natomiast 0 oznacza jej brak. Przykładowo, jeśli w~ zbiorze danych występują emocje \textit{joy}, \textit{sadness} i \textit{anger}, to próbka z etykietami \{\textit{joy}, \textit{anger}\} zostanie zakodowana jako wektor $[1, 0, 1]$. Dzięki temu każda kolumna reprezentuje niezależny problem klasyfikacji binarnej, a model może uczyć się przewidywać przynależność do każdej emocji niezależnie od pozostałych.
+
+Zastosowanie \texttt{MultiLabelBinarizer} zapewnia spójność mapowania etykiet w całym zbiorze danych, a także umożliwia odwzorowanie wyników predykcji na ich pierwotne nazwy poprzez metodę \texttt{inverse\_transform()}. Pozwala to na interpretację wyników modelu w postaci zrozumiałych nazw emocji zamiast indeksów liczbowych. W praktyce jest to szczególnie istotne na etapie tworzenia raportów klasyfikacyjnych i wizualizacji wyników.
+
+Warto podkreślić, że metoda ta jest odpowiednia wyłącznie dla problemów wieloetykietowych (\textit{multi-label classification}), gdzie każda próbka może posiadać więcej niż jedną etykietę. Alternatywne podejścia, takie jak \texttt{LabelEncoder} lub \texttt{OneHotEncoder}, są stosowane w klasyfikacji jednoetykietowej, gdzie każdemu przykładowi przypisana jest dokładnie jedna klasa. \texttt{LabelEncoder} nie nadaje się do problemów wieloetykietowych, ponieważ zakłada jednoznaczne przypisanie klasy, a nie zestawu klas. 
+
+Warto także wspomnieć o alternatywnych podejściach do kodowania etykiet. Przykładem jest artykuł \textit{,,Emotion Label Encoding Using Word Embeddings for Speech Emotion Recognition''} \cite{Interspeech} autorstwa Eimear Stanley, Erica DeMattosa, Anity Klementiev, Piotra Ozimka, Georgii Clarke, Michaela Bergera i Dimitriego Palaza. Autorzy pokazują, że wykorzystanie semantycznych osadzeń wektorowych (\textit{embeddings}) dla etykiet emocji, takich jak \textit{,,sadness''} czy \textit{,,joy''}, może prowadzić do lepszych wyników niż tradycyjne podejścia typu one-hot lub integer encoding.
+
+
+\subsection{Tokenizacja danych}
+Aby odpowiednio przygotować dane do modelu BERT, wykorzystano tokenizer typu \texttt{bert- ~base-uncased} z biblioteki \texttt{HuggingFace Transformers}. Jest to wersja modelu BERT wytrenowana na tekstach w języku angielskim, która nie rozróżnia wielkich i małych liter. Tokenizer ten przekształca teksty w sekwencje tokenów zgodne z wymaganiami wejściowymi modelu opartego na architekturze transformerów, zachowując przy tym kluczowe informacje semantyczne.
+
+W procesie tokenizacji zastosowano przycinanie sekwencji do maksymalnej długości 128 tokenów (\textit{truncation}). Dodatkowo użyto dopełniania krótszych sekwencji (\textit{padding}). Połączenie tych ustawień zapewnia jednolitą długość danych wejściowych dla każdej próbki. Stała długość sekwencji jest konieczna do przetwarzania danych w postaci tensorów w ramach uczenia głębokiego. Tokenizer zwraca również dodatkowe informacje, takie jak maska uwagi (\textit{attention mask}), która informuje model, które tokeny należy brać pod uwagę podczas przetwarzania.
+
+Dużo cennych i praktycznych informacji o tokenizacji przedstawiono w rozdziale \textit{,,Text Classification''} książki \textit{,,Natural Language Processing with Transformers (Revised Edition)''} \cite{NaturalLanguageProcessing} autorstwa Lewisa Tunstalla, Leandro von Werry i Thomasa Wolfa. Autorzy wyjaśniają krok po kroku proces tokenizacji (znakowej, wyrazowej, podwyrazowej), zastosowanie \textit{paddingu} i~ \textit{truncation}, a także metody tokenizacji całych zbiorów danych.
+
+Tokenizer \texttt{bert-base-uncased} działa w oparciu o technikę \textit{WordPiece Tokenization}, która dzieli słowa na mniejsze jednostki (\textit{subword units}). Na przykład rzadkie słowo \textit{,,unhappiness''} może zostać rozbite na fragmenty: \textit{,,un''}, \textit{,,\#\#happiness''}, gdzie znak \#\# wskazuje, że dany token jest kontynuacją poprzedniego. Dzięki temu znacząco redukuje się problem nieznanych słów (\textit{ang. out of vocabulary}), a model potrafi lepiej generalizować także dla rzadkich wyrażeń.
+
+Proces tokenizacji nie ogranicza się jedynie do dzielenia tekstu. Tokenizer BERT dodatkowo:
+\begin{itemize}
+    \item dodaje specjalne tokeny, takie jak \texttt{[CLS]} (na początku sekwencji) i \texttt{[SEP]} (na końcu lub między zdaniami), które pełnią istotne role w rozumieniu kontekstu i klasyfikacji,
+    \item zwraca także \texttt{token-type-ids} (opcjonalnie), czyli identyfikatory segmentów, jeśli model obsługuje więcej niż jedno wejściowe zdanie.
+\end{itemize}
+
+
+\subsection{Tworzenie klasy datasetu}
+Żeby szybko i wydajnie trenować model uczenia maszynowego z wykorzystaniem biblioteki \texttt{PyTorch}, konieczne jest odpowiednie przygotowanie danych. Muszą być one w takim formacie, aby mechanizm ładowania (\texttt{DataLoader}) je akceptował. W tym celu zdefiniowano własną klasę \texttt{EmotionDataset}, która dziedziczy po klasie bazowej \texttt{Dataset} z modułu \texttt{torch.utils.data}. Jej zadaniem jest przechowywanie i zwracanie danych wejściowych oraz odpowiadających im etykiet emocji w postaci tensorów.
+
+W konstruktorze klasy (\texttt{\_\_init\_\_}) wykonywana jest tokenizacja przekazanych tekstów z użyciem tokenizera BERT, który został wcześniej zainicjalizowany. Parametry \texttt{truncation=True} oraz \texttt{padding=True} zapewniają, że wszystkie sekwencje zostaną ujednolicone do maksymalnej długości 128 tokenów, co jest wymagane przy pracy z modelami transformatorowymi. Wynik tokenizacji to słownik zawierający tensory odpowiadające m.in. identyfikatorom tokenów (\texttt{input\_ids}) oraz maskom uwagi (\texttt{attention\_mask}).
+
+Dodatkowo, etykiety emocji (wcześniej zakodowane jako liczby całkowite) są konwertowane do tensora typu \texttt{torch.tensor}, co umożliwia ich bezpośrednie użycie podczas uczenia modelu.
+
+Metoda \texttt{\_\_len\_\_} zwraca liczbę próbek w zbiorze danych, co pozwala m.in. na iterowanie po danych przy użyciu \texttt{DataLoader}. Natomiast metoda \texttt{\_\_getitem\_\_} umożliwia dostęp do konkretnej próbki na podstawie indeksu — zwraca słownik zawierający tokeny oraz przypisaną etykietę emocji. Struktura danych w tej postaci jest zgodna z wymaganiami modeli opartych na architekturze BERT, implementowanych w bibliotece \texttt{transformers}. Właściwości obiektów \texttt{Dataset}, a także przykłady budowania niestandardowych klas i ich integracji z \texttt{DataLoader}, zostały szeroko opisane w książce \textit{,,Machine Learning with PyTorch and Scikit-Learn''} \cite{MLpytorch} autorstwa Sebastiana Raschki, Yuxi (Hayden) Liu i Vahida Mirjalili w rozdziale \textit{,,Parallelizing Neural Network Training with PyTorch''}.
+
+Takie podejście, polegające na zdefiniowaniu niestandardowej klasy datasetu, zapewnia elastyczność i pełną kontrolę nad formatem danych wejściowych. Jest to szczególnie przydatne w~ zadaniach klasyfikacji tekstów, takich jak rozpoznawanie emocji.
+
+\subsection{Podział na zbiór treningowy i testowy}
+Dane zostały podzielone na zbiór treningowy i testowy w proporcji 80:20. Do podziału wykorzystano funkcję \texttt{iterative\_train\_test\_split} z biblioteki \texttt{scikit-multilearn}, która jest przeznaczona specjalnie do problemów klasyfikacji wieloetykietowej. W odróżnieniu od standardowej funkcji \texttt{train\_test\_split} z biblioteki \texttt{scikit-learn}, metoda ta zapewnia możliwie najbardziej równomierne zachowanie rozkładu etykiet w obu zbiorach. Dzięki temu każda z~ emocji występuje zarówno w zbiorze treningowym, jak i testowym, co pozwala na bardziej rzetelną ewaluację modelu.
+
+Przed podziałem etykiety tekstowe zostały zakodowane do postaci numerycznej za pomocą klasy \texttt{MultiLabelBinarizer} z biblioteki \texttt{scikit-learn}. Każda lista etykiet przypisana do próbki została przekształcona w wektor binarny, w którym 1 oznacza przypisanie danej emocji do próbki, a 0 jej brak. Następnie tak przygotowane dane wejściowe (\texttt{X}) i zakodowane etykiety (\texttt{Y}) zostały przekazane do funkcji \texttt{iterative\_train\_test\_split}, która losowo przydzieliła 80\% przykładów do zbioru treningowego i 20\% do testowego, zachowując możliwie podobny rozkład klas.
+
+Po podziale uzyskane teksty i odpowiadające im wektory etykiet zostały zapisane w postaci obiektów typu \texttt{Dataset} z biblioteki \texttt{PyTorch}. Struktura ta umożliwia bezpośrednie wykorzystanie danych w procesie uczenia głębokiego, pozwala na ich automatyczne ładowanie w paczkach (\textit{batchach}), mieszanie (\textit{shuffling}) oraz optymalizuje zarządzanie pamięcią podczas trenowania modelu. Dzięki temu możliwe jest efektywne i stabilne przeprowadzanie uczenia modeli typu Transformer. Książka \textit{,,Machine Learning with PyTorch and Scikit-Learn''} \cite{MLpytorch} autorstwa Sebastian Raschka, Yuxi (Hayden) Liu, Vahid Mirjalili w rozdziale 3 w sekcji \textit{,,First steps with scikit-learn -- training a perceptron''} opisuje ogólne działanie podzialu zbioru oraz zasady, jakie trzeba zachować podczas tej operacji.
+
+Zachowanie spójnego i zrównoważonego podziału danych jest kluczowe dla rzetelnej oceny modelu. Ewaluacja na przykładach, których model wcześniej nie widział, pozwala oszacować jego zdolność do generalizacji i minimalizuje ryzyko przeuczenia (\textit{overfitting}), które mogłoby prowadzić do zaniżonej skuteczności w rzeczywistych zastosowaniach. W artykule \textit{,,EvoSplit: An evolutionary approach to split a multi-label data set into disjoint subsets''} \cite{EvoSplit} autor porównuje różne metody dzielenia danych wieloetykietowych, w tym metodę stratifikacji iteracyjnej.
+
+
+
+\section{Wyniki i analiza jakości klasyfikacji}
+
+\subsection{Wyniki klasyfikacji}
+Aby ocenić skuteczność zaprojektowanego modelu przeprowadzono testy na zmodyfikowanej wersji zbioru \textit{goEmotions}, obejmującej różnorodne wypowiedzi tekstowe. Na potrzeby eksperymentu pierwotny zestaw 28 etykiet (27 emocji oraz klasa neutralna) został zredukowany do 10 najczęściej występujących klas emocji, co opisano w sekcji ~\ref{sekcja_redukcja_klas}. Model został wytrenowany do rozpoznawania właśnie tych 10 wybranych klas. Analiza wyników pozwala określić, w jakim stopniu model poprawnie odwzorowuje faktyczny ładunek emocjonalny wypowiedzi. Takie podejście umożliwia przejrzystą ocenę skuteczności działania modelu w zawężonym, lecz bardziej zrównoważonym podzbiorze etykiet. Tabela \ref{tab:predykcje} przedstawia ułamek wyników predykcji na danych testowych. 
+
+\begin{table}[H]
+	\centering
+	\scriptsize
+	\renewcommand{\arraystretch}{1.4}
+	\begin{tabularx}{\textwidth}{|c|X|c|c|c|}
+		\hline
+		\textbf{\#} & \textbf{text} & \textbf{actual\_emotions} & \textbf{predict\_emotions} & \textbf{dominant\_predict\_emotion} \\ \hline
+		0 & They call it the hub and spoke system. They ne... & [disapproval] & [disapproval] & disapproval \\ \hline
+		1 & nice looks like I hit just about hit the sweet... & [admiration] & [admiration] & admiration \\ \hline
+		2 & I've never been more disturbed by a dog & [annoyance] & [annoyance] & annoyance \\ \hline
+		3 & What a baby... & [admiration] & [admiration] & admiration \\ \hline
+		4 & “Oh hey, I think a second ago [NAME] just put ... & [curiosity] & [curiosity] & curiosity \\ \hline
+		\multicolumn{5}{|c|}{\dots} \\ \hline
+		1428 & AV is a system where if you vote for a loser y... & [annoyance] & [annoyance] & annoyance \\ \hline
+		1429 & All the smut at Target makes me cringe. That, ... & [neutral] & [neutral] & neutral \\ \hline
+		1430 & Upvoted because she follows [NAME] & [approval] & [approval] & approval \\ \hline
+		1431 & They’ve performed it live together so maybe yo... & [neutral] & [neutral] & neutral \\ \hline
+		1432 & Well damn I’m going to the Buckingham today & [neutral] & [neutral] & neutral \\ \hline
+	\end{tabularx}
+	\caption{Przykładowe wyniki predykcji modelu na tekstach}
+	\label{tab:predykcje}
+\end{table}
+
+
+\subsection{Analiza jakości klasyfikacji}
+W celu oceny jakości modelu klasyfikacji wieloetykietowej przeprowadzono analizę wyników na zbiorze testowym. Tabela \ref{tab:metryki} przedstawia wyznaczony optymalny próg decyzyjny oraz wartości metryk oceny jakości modelu klasyfikacji wieloetykietowej na zbiorze testowym.
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.6}
+	\begin{tabular}{|l|c|}
+		\hline
+		\textbf{Metryka} & \textbf{Wartość} \\ \hline
+		Najlepszy próg & 0.35 \\ \hline
+		Hamming loss & 0.034473133286810884 \\ \hline
+		Subset accuracy & 0.8136775994417307 \\ \hline
+	\end{tabular}
+	\caption{Metryki jakości klasyfikacji}
+	\label{tab:metryki}
+\end{table}
+ 
+W pierwszym kroku wyznaczono optymalny próg decyzyjny, przekształcający prawdopodobieństwa predykcji na etykiety binarne. 
+W tym celu obliczano wartość miary \textit{F1} (uśrednianie \textit{micro}) dla progów z zakresu \([0.1, 0.9]\) ze skokiem \(0.05\). Za optymalny przyjęto próg maksymalizujący wartość \textit{F1}, który wyniósł \(0.35\). Obniżenie progu względem domyślnej wartości \(0.5\) pozwoliło zwiększyć czułość modelu i zredukować liczbę fałszywie negatywnych predykcji.
+
+Dla uzyskanego najlepszego progu obliczono dwie metryki jakości klasyfikacji wieloetykietowej:
+
+\begin{itemize}
+	\item \textbf{Hamming loss = 0.03447} -- odsetek niepoprawnie przewidzianych etykiet w stosunku do całkowitej liczby etykiet. 
+	Niska wartość tej miary oznacza, że model popełnia bardzo niewiele błędów na poziomie pojedynczych etykiet (ok.~3,4\%).
+	
+	\item \textbf{Subset accuracy = 0.81368} -- odsetek przykładów, dla których cały zestaw etykiet został przewidziany dokładnie. Jest to bardzo restrykcyjna metryka, wymagająca całkowitej zgodności przewidzianych i rzeczywistych etykiet. Uzyskany wynik oznacza, że model poprawnie przewidział wszystkie etykiety dla około \(81{,}4\%\) przykładów testowych.
+\end{itemize}
+
+Uzyskane wartości metryk wskazują na wysoką skuteczność modelu w zadaniu klasyfikacji wieloetykietowej, zarówno pod względem dokładności predykcji pojedynczych etykiet, jak i~ kompletności przewidywania całych zestawów etykiet.
+
+
+Tabela~\ref{tab:raport} przedstawia wartości metryk \textit{precision}, \textit{recall} oraz \textit{f1-score} dla każdej z dziesięciu etykiet emocji na zbiorze testowym, wraz z licznością przykładów (\textit{support}). Dodatkowo zaprezentowano wartości uśrednione (\textit{micro}, \textit{macro}, \textit{weighted} oraz \textit{samples}). 
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.6}
+	{\normalsize
+		\begin{tabular}{|l|c|c|c|c|}
+			\hline
+			\textbf{Label} & \textbf{precision} & \textbf{recall} & \textbf{f1-score} & \textbf{support} \\ \hline
+			admiration & 0.80 & 0.88 & 0.84 & 182 \\ \hline
+			amusement & 0.84 & 0.99 & 0.91 & 79 \\ \hline
+			anger & 0.78 & 0.93 & 0.85 & 74 \\ \hline
+			annoyance & 0.74 & 0.92 & 0.82 & 123 \\ \hline
+			approval & 0.74 & 0.88 & 0.80 & 172 \\ \hline
+			confusion & 0.79 & 0.96 & 0.87 & 78 \\ \hline
+			curiosity & 0.82 & 1.00 & 0.90 & 98 \\ \hline
+			disapproval & 0.78 & 0.97 & 0.86 & 104 \\ \hline
+			gratitude & 0.96 & 0.99 & 0.97 & 109 \\ \hline
+			neutral & 0.96 & 0.68 & 0.79 & 527 \\ \hline
+			\cline{1-5}
+			micro avg & 0.84 & 0.85 & 0.84 & 1546 \\ \hline
+			macro avg & 0.82 & 0.92 & 0.86 & 1546 \\ \hline
+			weighted avg & 0.85 & 0.85 & 0.84 & 1546 \\ \hline
+			samples avg & 0.84 & 0.84 & 0.84 & 1546 \\ \hline
+		\end{tabular}
+	}
+	\caption{Raport klasyfikacji dla poszczególnych etykiet}
+	\label{tab:raport}
+\end{table}
+
+Większość etykiet osiąga wysokie wyniki \textit{f1-score} w przedziale 0.80 -- 0.97, co wskazuje na wysoką skuteczność modelu w rozpoznawaniu różnorodnych emocji w tekstach. Najlepsze wyniki uzyskano dla etykiet \textit{gratitude} (\textit{f1-score} = 0.97) oraz \textit{amusement} (\textit{f1-score} = 0.91), które charakteryzują się jednocześnie bardzo wysokimi wartościami \textit{precision} oraz \textit{recall}, co oznacza, że model zarówno skutecznie wykrywa te emocje, jak i bardzo rzadko je myli z innymi. 
+
+Nieco niższe wyniki uzyskano dla etykiet \textit{annoyance} (\textit{f1-score} = 0.82) oraz \textit{approval} (\textit{f1-score} = 0.80), co może wynikać z częściowego nakładania się ich cech semantycznych z innymi emocjami, utrudniającego modelowi jednoznaczne rozpoznanie. Największe trudności model wykazuje dla klasy \textit{neutral}, która osiągnęła stosunkowo niską wartość \textit{recall} (0.68) przy bardzo wysokiej \textit{precision} (0.96), co wskazuje, że model często pomija tę etykietę, lecz jeśli ją przewidzi, to robi to bardzo trafnie. 
+
+Wyniki zagregowane również potwierdzają wysoką skuteczność modelu: \textit{micro avg f1-score} = 0.84, \textit{macro avg f1-score} = 0.86, \textit{weighted avg f1-score} = 0.84, a \textit{samples avg f1-score} = 0.84, co świadczy o stabilnym działaniu modelu zarówno dla klas licznych, jak i rzadkich. Uzyskane wyniki dowodzą, że model jest w stanie skutecznie i spójnie klasyfikować wiele emocji w tekstach, a jedynym istotnym ograniczeniem pozostaje stosunkowo niska czułość w wykrywaniu klasy \textit{neutral}.
+
+
+\section{Analiza wyników technik wyjaśnialności}
+W celu zrozumienia procesów decyzyjnych zastosowanego modelu klasyfikacji emocji z tekstu przeprowadzono analizę wyników z wykorzystaniem wybranych technik wyjaśnialności modeli uczenia maszynowego (Explainable Artificial Intelligence, XAI). Skupiono się na dwóch popularnych i komplementarnych podejściach -- SHAP (SHapley Additive exPlanations) oraz LIME (Local Interpretable Model-Agnostic Explanations).
+
+Obie metody umożliwiają identyfikację cech wejściowych (w tym przypadku słów lub fragmentów tekstu), które w największym stopniu wpływają na ostateczną predykcję modelu. SHAP opiera się na teorii wartości Shapleya i zapewnia spójne, addytywne miary wpływu poszczególnych cech, pozwalając na analizę zarówno lokalną (dla pojedynczych przykładów), jak i globalną (dla całego zbioru). Z kolei LIME wykorzystuje lokalne modele zastępcze do przybliżenia zachowania modelu w otoczeniu wybranego przykładu, dostarczając interpretacji w postaci najbardziej istotnych cech dla danej predykcji.
+
+W kolejnych podrozdziałach przedstawiono szczegółowe wyniki i interpretacje dla obu metod, a następnie dokonano ich porównania pod kątem jakości dostarczanych wyjaśnień, możliwości interpretacyjnych oraz potencjalnych zastosowań w analizie emocji z tekstu. Analiza ta pozwala nie tylko lepiej zrozumieć, w jaki sposób model dokonuje klasyfikacji, lecz także ocenić przydatność poszczególnych technik XAI w kontekście praktycznych zastosowań systemów NLP.
+
+
+\subsection{Analiza wyjaśnień SHAP}
+Celem tej sekcji jest poglądowa analiza lokalnych wyjaśnień uzyskanych metodą SHAP (\textit{ang. SHapley Additive exPlanations}) dla modelu klasyfikacji emocji opartego na architekturze BERT. SHAP przypisuje każdej cesze wejściowej (w tym przypadku tokenom sub-słownym -- \textit{WordPiece}) wartość określającą jej wpływ na decyzję modelu dla konkretnej klasy. Dla wybranego przykładu \(x\) metoda zwraca wektor wartości \(\{\varphi_j\}\) spełniający własność addytywności:
+
+\[
+f_c(x) \approx \varphi_0 + \sum_{j=1}^p \varphi_j,
+\]
+
+gdzie \(\varphi_0 = \mathbb{E}[f_c(X)]\) to wartość bazowa (średni wynik modelu dla klasy \(c\) na zbiorze tła), a~ \(\varphi_j\) to marginalny wkład \(j\)-tej cechy. Wykresy \textit{force plot} pokazują wkłady dodatnie (zwiększające pewność klasy) oraz ujemne (zmniejszające ją). Suma wkładów wraz z wartością bazową jest równa końcowemu wynikowi modelu dla danej klasy, co pozwala zweryfikować spójność interpretacji. 
+
+
+\paragraph{Ustawienia eksperymentu}
+
+\begin{itemize}
+	\item Wyjaśnienia obliczano dla 10 przykładów wybranych ze zbioru testowego \textit{GoEmotions}.
+	\item W celu zróżnicowania przypadków do analizy wybrano:
+	\begin{itemize}
+		\item 2 przykłady błędnych predykcji, w których model nie przypisał żadnej etykiety (puste predykcje),
+		\item 3 przykłady skrajne -- spośród 10 przypadków o najniższej pewności (confidence $\approx$ 0),
+		\item 5 przykładów poprawnych, w których przewidywane etykiety dokładnie pokrywały się z~ rzeczywistymi (najwyższa pewność predykcji).
+	\end{itemize}
+	\item Pewność predykcji (confidence) wyliczano jako średnie prawdopodobieństwo przypisane przez model etykietom uznanym za pozytywne.
+	\item Wybór przykładów przeprowadzono losowo z wykorzystaniem \texttt{np.random.seed}. Ziarno losowości ustawiono na wartość \textit{78}, aby zachować replikowalność.
+	\item Jako cechy wejściowe dla SHAP wykorzystano tokeny sub-słowne \textit{WordPiece}, co jest typowe dla modeli BERT. W konsekwencji słowa mogą być dzielone na segmenty (np. \textit{likable} → \textit{,,li''}, \textit{,,ka''}, \textit{,,ble''}), co należy uwzględnić podczas interpretacji wykresów.
+	\item Wartość bazową \(\varphi_0\) wyznaczono na podstawie losowej próbki zdań testowych; w wykresach przyjmuje ona wartości bliskie zeru, co oznacza, że średnie prawdopodobieństwo rozważanej klasy w próbie tła jest niskie.
+\end{itemize}
+
+Analiza ma na celu poglądowe zobrazowanie, w jaki sposób poszczególne tokeny wpływają na wynik modelu, jakie elementy tekstu są istotne przy przypisywaniu emocji oraz jak interpretować wartości SHAP w kontekście klasyfikacji wieloetykietowej. Jej celem jest zrozumienie, które fragmenty tekstu najbardziej determinują decyzje modelu, a nie formalna ocena jakości generowanych wyjaśnień -- ta została przeprowadzona osobno na całym zbiorze testowym.
+
+
+
+\paragraph{Przypadek 1}
+
+\textbf{Tekst:} ,,Playing competitive MTG has brought me as much...''
+
+\textbf{Rzeczywista etykieta:} \textit{anger}
+
+\textbf{Przewidywane klasy:} brak
+
+\textbf{Dominująca przewidywana klasa:} \textit{brak} (żadna etykieta nie przekroczyła progu)
+
+\textbf{Wynik modelu:} brak etykiet powyżej progu\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Tekst został oceniony jako pozbawiony wyraźnych sygnałów emocjonalnych, mimo że rzeczywista etykieta to \textit{anger}.
+	\item Brak wykresu SHAP, bo nie została przekroczona wartość progowa.
+	\item Prawdopodobieństwa dla wszystkich klas były zbyt niskie, by zostały uznane za aktywne.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model nie wykrył emocji gniewu, mimo że taka etykieta została przypisana w zbiorze danych.
+
+
+
+\paragraph{Przypadek 2}
+
+\textbf{Tekst:} ,,FOR THE PEOPLE''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} brak
+
+\textbf{Dominująca przewidywana klasa:} \textit{brak} (żadna etykieta nie przekroczyła progu)
+
+\textbf{Wynik modelu:} brak etykiet powyżej progu\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Krótki, hasłowy tekst bez wyraźnych markerów emocjonalnych został oceniony jako neutralny.
+	\item Brak wykresu SHAP, ponieważ żadne prawdopodobieństwo nie przekroczyło progu.
+	\item Brak wykrytych emocji jest spójny z brakiem kontekstu emocjonalnego w treści.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- brak sygnałów emocjonalnych w tekście, co jest zgodne z etykietą \textit{neutral}.
+
+
+
+\paragraph{Przypadek 3}
+
+\myfigure{shap3}{SHAP -- przypadek 3}{0.9}
+
+\textbf{Tekst:} ,,us is of the top oil exporters in the world. 2003 wants it’s talking point back.''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{approval}, \textit{neutral}
+
+\textbf{Dominująca przewidywana klasa:} \textit{approval}
+
+\textbf{Wynik modelu:} przypisano etykiety \textit{approval} i \textit{neutral}, najwyższe prawdopodobieństwo dla \textit{approval}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model wykrył lekko pozytywny ton wypowiedzi i przypisał jej etykietę \textit{approval}, mimo że nie zawiera jednoznacznych markerów emocjonalnych.
+	\item Największy wpływ na decyzję miały słowa ,,2003'' oraz ,,it'', które lokalnie zwiększyły prawdopodobieństwo klasy \textit{approval}.
+	\item Słowa neutralne znaczeniowo (,,in'', ,,the'', ,,world'', ,,is'') miały znikomy wpływ.
+	\item Wartość bazowa była niska ($\approx 0.03$), a końcowy wynik wzrósł do $\approx 0.40$ pod wpływem kilku tokenów.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model błędnie zinterpretował neutralny tekst jako wyrażający aprobatę, co może wynikać z artefaktów językowych niezwiązanych z~ emocjami.
+
+
+\paragraph{Przypadek 4}
+
+\myfigure{shap4}{SHAP -- przypadek 4}{0.9}
+
+\textbf{Tekst:} ,,last email i got was on jan 27th on sunday @ 11:22pm which is really odd imo''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{annoyance}, \textit{neutral}
+
+\textbf{Dominująca przewidywana klasa:} \textit{annoyance}
+
+\textbf{Wynik modelu:} przypisano etykiety \textit{annoyance} i \textit{neutral}, najwyższe prawdopodobieństwo dla \textit{annoyance}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model wykrył lekki sygnał irytacji na podstawie słów ,,odd'' i ,,which'', które lokalnie zwiększyły prawdopodobieństwo klasy \textit{annoyance}.
+	\item Większość tokenów miała marginalny wpływ, a tekst ma opisowy charakter z pojedynczym elementem oceniającym (,,odd'').
+	\item Wartość bazowa była niska ($\approx 0.016$), a wynik wzrósł do $\approx 0.36$ pod wpływem kilku tokenów.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model błędnie przypisał emocję irytacji do neutralnej wypowiedzi o charakterze faktograficznym.
+
+
+\paragraph{Przypadek 5}
+
+\myfigure{shap5}{SHAP -- przypadek 5}{0.9}
+
+\textbf{Tekst:} ,,oh for fuck sake. things were going so well on the coaching front. this dude is nothing but a suck up''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{annoyance}
+
+\textbf{Dominująca przewidywana klasa:} \textit{annoyance}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{annoyance}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model wykrył silny sygnał irytacji głównie na podstawie wulgaryzmu ,,fuck'' oraz fraz deprecjonujących (,,suck up'', ,,dude'').
+	\item Te tokeny znacząco zwiększyły prawdopodobieństwo klasy \textit{annoyance}, podczas gdy reszta słów miała znikomy lub ujemny wpływ.
+	\item Wartość bazowa była bardzo niska ($\approx 0.015$), a wynik wzrósł do $\approx 0.38$ dzięki kilku emocjonalnym tokenom.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model przypisał emocję irytacji tekstowi oznaczonemu jako neutralny, prawdopodobnie kierując się pojedynczymi nacechowanymi emocjonalnie słowami.
+
+
+\paragraph{Przypadek 6}
+
+\myfigure{shap6}{SHAP -- przypadek 6}{0.9}
+
+\textbf{Tekst:} ,,i’m so glad someone linked it. you’re doing the important work.''
+
+\textbf{Rzeczywista etykieta:} \textit{approval}
+
+\textbf{Przewidywane klasy:} \textit{approval}
+
+\textbf{Dominująca przewidywana klasa:} \textit{approval}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{approval}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie wykrył pozytywną ocenę działań i przypisał etykietę \textit{approval}.
+	\item Największy wpływ na decyzję miały słowa ,,glad'', ,,important'' oraz ,,work'', które znacząco zwiększyły prawdopodobieństwo klasy \textit{approval}.
+	\item Wartość bazowa była niska ($\approx 0.027$), a wynik wzrósł do $\approx 0.95$ dzięki silnym pozytywnym markerom.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model prawidłowo rozpoznał aprobatę zawartą w tekście.
+
+
+\paragraph{Przypadek 7}
+
+\myfigure{shap7}{SHAP -- przypadek 7}{0.9}
+
+\textbf{Tekst:} ,,omg those tiny shoes ! * desire to boop snoot intensifies *''
+
+\textbf{Rzeczywista etykieta:} \textit{admiration}
+
+\textbf{Przewidywane klasy:} \textit{admiration}
+
+\textbf{Dominująca przewidywana klasa:} \textit{admiration}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{admiration}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie wykrył pozytywny i entuzjastyczny ton wypowiedzi, przypisując etykietę \textit{admiration}.
+	\item Największy wpływ na decyzję miały słowa ,,tiny'', ,,desire'', ,,boop'' oraz ,,!'', które znacząco zwiększyły prawdopodobieństwo klasy \textit{admiration}.
+	\item Wartość bazowa wynosiła $\approx 0.057$, a wynik wzrósł do $\approx 0.93$ dzięki silnym pozytywnym markerom emocjonalnym.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie rozpoznał emocję podziwu w~ entuzjastycznej wypowiedzi.
+
+
+\paragraph{Przypadek 8}
+
+\myfigure{shap8}{SHAP -- przypadek 8}{0.9}
+
+\textbf{Tekst:} ,,they probably have a couple years to prepare unfortunately.''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{neutral}
+
+\textbf{Dominująca przewidywana klasa:} \textit{neutral}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{neutral}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie sklasyfikował wypowiedź jako neutralną, mimo występowania słowa ,,unfortunately'', które może sugerować negatywny ton.
+	\item Większość tokenów miała minimalny wpływ na decyzję, co jest zgodne z opisowym charakterem zdania.
+	\item Wartość bazowa była wysoka ($\approx 0.93$), co wskazuje na niską wykrywalność emocji w treści.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model prawidłowo rozpoznał neutralny ton wypowiedzi.
+
+
+\paragraph{Przypadek 9}
+
+\myfigure{shap9}{SHAP -- przypadek 9}{0.9}
+
+\textbf{Tekst:} ,,allow me to describe the shock and awe i experienced seeing this : * * fuck no why u do this ? * *''
+
+\textbf{Rzeczywista etykieta:} \textit{anger}
+
+\textbf{Przewidywane klasy:} \textit{anger}
+
+\textbf{Dominująca przewidywana klasa:} \textit{anger}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{anger}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie wykrył emocję gniewu, przypisując etykietę \textit{anger}.
+	\item Największy wpływ na decyzję miały słowa ,,fuck'' oraz fraza pytająca ,,why u do this?'', które znacząco zwiększyły prawdopodobieństwo klasy \textit{anger}.
+	\item Wartość bazowa była niska ($\approx 0.022$), a wynik wzrósł do $\approx 0.95$ dzięki silnym markerom gniewu.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie rozpoznał emocję gniewu w wypowiedzi zawierającej wulgarne i konfrontacyjne sformułowania.
+
+
+\paragraph{Przypadek 10}
+
+\myfigure{shap10}{SHAP -- przypadek 10}{0.9}
+
+\textbf{Tekst:} ,,lmao stole my joke !''
+
+\textbf{Rzeczywista etykieta:} \textit{amusement}
+
+\textbf{Przewidywane klasy:} \textit{amusement}
+
+\textbf{Dominująca przewidywana klasa:} \textit{amusement}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{amusement}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie wykrył emocję rozbawienia, przypisując etykietę \textit{amusement}.
+	\item Największy wpływ na decyzję miały słowa ,,lmao'', ,,joke'' oraz ,,stole'', które znacząco zwiększyły prawdopodobieństwo klasy \textit{amusement}.
+	\item Wartość bazowa była niska ($\approx 0.021$), a wynik wzrósł do $\approx 0.96$ dzięki obecności jednoznacznych markerów humorystycznych.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie rozpoznał emocję rozbawienia w~ wypowiedzi.
+
+
+
+\paragraph{Wzorce międzyprzykładowe}
+
+\begin{enumerate}
+	\item \textbf{Spójność semantyczna:} 
+	W przypadkach poprawnych predykcji (\textit{approval}, \textit{admiration}, \textit{amusement}, \textit{anger}, \textit{neutral}) widoczna była wyraźna zgodność między tonem wypowiedzi a użytym słownictwem. Tokeny nacechowane pozytywnie (\textit{glad}, \textit{important}, \textit{desire}, \textit{joke}) wzmacniały klasy o pozytywnej walencji, a tokeny nacechowane negatywnie (\textit{fuck}, \textit{why}, \textit{no}) wzmacniały predykcje dla klas negatywnych. Błędne klasyfikacje dotyczyły głównie tekstów neutralnych, w których pojedyncze nacechowane tokeny (np. \textit{odd}, \textit{fuck}) powodowały przesunięcie wyniku w stronę emocji.
+	
+	\item \textbf{Kolokwializmy i nacechowanie:} 
+	Model był szczególnie wrażliwy na potoczne i wulgarne słownictwo. W przypadkach błędnych predykcji słowa nacechowane negatywnie (\textit{fuck}, \textit{suck up}, \textit{odd}) prowadziły do błędnego przypisania klas \textit{annoyance} lub \textit{anger} tekstom neutralnym. W poprawnych predykcjach słowa nacechowane pozytywnie (\textit{glad}, \textit{important}) znacząco zwiększały pewność klasy. Wskazuje to na tendencję modelu do silnego reagowania na pojedyncze markery emocjonalne.
+	
+	\item \textbf{Tokenizacja sub-słowna:} 
+	Widoczne było rozbijanie słów na segmenty sub-słowne (np. \textit{intensifies} $\rightarrow$ \textit{inten}, \textit{s}, \textit{if}, \textit{ies}), co rozpraszało wkład semantyczny na wiele tokenów. Pojedyncze segmenty miały niskie wkłady, ale ich suma odzwierciedlała ogólną walencję słowa. Jest to istotne przy interpretacji — konieczne jest scalanie segmentów do pełnych słów przy analizach zbiorczych.
+	
+	\item \textbf{Rola domeny:} 
+	W analizowanych przykładach wpływ słownictwa domenowego był znikomy. Błędne predykcje wynikały raczej z nadwrażliwości na nacechowane słowa niż z błędnej interpretacji terminologii. Model nie wykazywał tendencji do nadmiernego wykorzystywania kontekstu dziedzinowego kosztem emocjonalnego — dominowała analiza tonacji i nacechowania leksykalnego.
+\end{enumerate}
+
+
+\paragraph{Kontrole jakości wyjaśnień}
+\begin{itemize}
+	\item \textbf{Addytywność:} dla wszystkich 10 przykładów spełnione zostało równanie $\varphi_0 + \sum_j \varphi_j \approx f_c(x)$, a odchylenia wynikały jedynie z błędów numerycznych. Potwierdza to poprawne działanie mechanizmu sumowania wkładów SHAP.
+	\item \textbf{Stabilność:} powtórzenie obliczeń SHAP na innych zbiorach tła nie zmieniało jakościowych wyników. Zmieniały się wartości bezwzględne wkładów, lecz ich znaki i relatywne szeregi ważności pozostawały niezmienne.
+	\item \textbf{Zgodność lingwistyczna:} kierunki wkładów tokenów były spójne z intuicją językową: pozytywne tokeny wzmacniały klasy pozytywne (\textit{glad}, \textit{important}), negatywne wzmacniały klasy negatywne (\textit{fuck}, \textit{no}). W neutralnych tekstach tokeny miały znikomy wpływ, co również było zgodne z intuicją.
+\end{itemize}
+
+
+\paragraph{Ograniczenia i uwagi interpretacyjne}
+\begin{itemize}
+	\item \textbf{Lokalność:} Wyjaśnienia SHAP są lokalne — dotyczą tylko analizowanych przypadków. Nie można ich bezpośrednio uogólniać na całość zbioru testowego bez dodatkowej analizy globalnej.
+	
+	\item \textbf{Interakcje składniowo-semantyczne:} SHAP traktuje wkłady tokenów addytywnie, przez co może nie uchwycić interakcji między słowami. W kilku przypadkach (np. \textit{why u do this?}) cały fragment miał silniejszy ładunek emocjonalny niż suma pojedynczych słów.
+	
+	\item \textbf{Tokenizacja sub-słowna:} Podział słów na segmenty obniżał przejrzystość wykresów, co wymaga ostrożności w interpretacji. Zaleca się agregowanie wkładów do pełnych słów przy analizach zbiorczych.
+	
+	\item \textbf{Wybór klasy docelowej:} Interpretacje dotyczyły wyłącznie dominujących klas przewidywanych. W analizach porównawczych można dodatkowo porównywać wyjaśnienia dla klas konkurencyjnych, aby lepiej zrozumieć mechanizm decyzyjny modelu.
+\end{itemize}
+
+
+\paragraph{Podsumowanie}
+Analiza dziesięciu wybranych przykładów z użyciem SHAP ujawniła, że model BERT opiera decyzje głównie na pojedynczych tokenach o silnym nacechowaniu emocjonalnym. W tekstach pozytywnych (np. \textit{approval}, \textit{admiration}, \textit{amusement}) konsekwentnie wykorzystywał pozytywne leksemy, a w tekstach negatywnych (\textit{anger}) — wulgarne lub konfrontacyjne słowa. Błędne klasyfikacje dotyczyły głównie neutralnych wypowiedzi, które zawierały pojedyncze nacechowane słowa, powodujące przesunięcie predykcji. Potwierdzono addytywność i stabilność wkładów oraz ich zgodność z intuicją językową. Jednocześnie wykazano ograniczenia: lokalny charakter SHAP, nieuwzględnianie interakcji składniowych i problematyczność tokenizacji sub-słownej. 
+
+W książce \textit{,,Interpretable Machine Learning: A Guide for Making Black Box Models Explainable''} \cite{SHAP} autor Christoph Molnar w rozdziale \textit{,,Local Model-Agnostic Methods''} w sekcji \textit{,,SHAP (SHapley Additive exPlanations)''} wyjaśnia sposób działania SHAP jako metody lokalnej, wykorzystującej wartości Shapleya do interpretacji pojedynczych predykcji, a także wspomina o możliwości agregowania tych wartości w celu uzyskania obrazu globalnego. Jednocześnie zauważono istotne ograniczenia, takie jak lokalny charakter wyjaśnień (niemożność bezpośredniego uogólniania pojedynczych przypadków na całą populację danych), potencjalne pomijanie interakcji składniowo-semantycznych czy zależność interpretacji od wybranej klasy docelowej.
+
+
+
+\subsection{Analiza wyjaśnień LIME}
+Metoda LIME (\textit{Local Interpretable Model-agnostic Explanations}) wyjaśnia działanie modelu $f$ w punkcie $x$ poprzez dopasowanie prostego, interpretable modelu $g$ (np. regresji liniowej) w~ lokalnym sąsiedztwie $x$. W tym celu generowany jest zbiór perturbacji $\{ z'_i \}_{i=1}^N$ w przestrzeni binarnej cech, reprezentujących obecność lub brak danego elementu wejścia (np. tokenu). Każdy wektor binarny $z'_i$ odwzorowywany jest do oryginalnej przestrzeni cech $z_i$, dla której obliczana jest predykcja modelu $f(z_i)$.
+
+Współczynniki modelu $g$ wyznacza się poprzez rozwiązanie problemu optymalizacyjnego:
+\[
+\underset{g \in G}{\text{argmin}} \; L(f, g, \pi_x) + \Omega(g),
+\]
+gdzie:
+\begin{itemize}
+    \item $G$ -- rodzina prostych modeli interpretable (np. regresja liniowa, drzewa decyzyjne o małej głębokości),
+    \item $L(f, g, \pi_x)$ -- funkcja straty ważona, mierząca dopasowanie predykcji $g$ do predykcji $f$ w~ sąsiedztwie $x$,
+    \item $\pi_x(z)$ -- funkcja wag lokalnych, zwykle zdefiniowana jako jądro wykładnicze:
+    \[
+    \pi_x(z) = \exp\left(- \frac{D(x, z)^2}{\sigma^2}\right),
+    \]
+    gdzie $D(\cdot,\cdot)$ to metryka odległości (np. odległość Hamminga lub cosinusowa) w przestrzeni cech binarnych,
+    \item $\Omega(g)$ -- kara za złożoność modelu $g$ (np. ograniczenie liczby cech do $K$).
+\end{itemize}
+
+Ostatecznie wyjaśnienie ma postać wektora wag $\{w_j\}_{j=1}^p$ modelu liniowego:
+\[
+g(z') = w_0 + \sum_{j=1}^p w_j z'_j,
+\]
+gdzie $w_j$ określa kierunek i siłę wpływu cechy $j$ na przewidywane prawdopodobieństwo danej klasy w lokalnym sąsiedztwie punktu $x$.
+
+
+Celem tej sekcji jest szczegółowa analiza lokalnych wyjaśnień uzyskanych metodą LIME
+(\textit{Local Interpretable Model-agnostic Explanations}) dla modelu klasyfikacji emocji opartego na architekturze BERT. LIME wyraża wpływ poszczególnych cech wejściowych (w tym przypadku tokenów powstałych w wyniku tokenizacji) na wynik modelu dla konkretnej klasy. Metoda działa w sposób aproksymacyjny: dla badanego przykładu $x$ generuje losowe perturbacje tekstu, a~ następnie dopasowuje interpretable model liniowy do predykcji oryginalnego modelu w sąsiedztwie punktu $x$.
+W książce \textit{,,Interpretable Machine Learning: A Guide for Making Black Box Models Explainable''} \cite{SHAP}, w rozdziale \textit{,,Local Model-Agnostic Methods''} sekcji \textit{,,LIME''}, autor szczegółowo opisuje procedurę generowania perturbacji, sposób ważenia próbek funkcją jądrową oraz dopasowanie modelu zastępczego $g$ poprzez minimalizację funkcji $L(f,g,\pi_x) + \Omega(g)$, co potwierdza i uzupełnia poniższy opis. Współczynniki modelu lokalnego reprezentują znaczenie poszczególnych cech w przewidywaniu danej klasy.
+
+Dla każdego przypadku tworzony jest wektor cech $w_j$ wraz z odpowiadającymi im wagami, które mogą być dodatnie (zwiększające prawdopodobieństwo klasy) lub ujemne (zmniejszające je).
+Wizualizacja w postaci \textit{highlighted text} przedstawia tokeny najbardziej wpływowe, pokolorowane zgodnie z kierunkiem i siłą wpływu. Wykres słupkowy pokazuje wkład poszczególnych tokenów w prawdopodobieństwo przewidywanej klasy.
+
+\paragraph{Ustawienia eksperymentu}
+
+\begin{itemize}
+	\item Analiza została przeprowadzona dla 10 przykładów z zestawu testowego.
+	
+	\item Dla każdego przykładu wybierano klasy odpowiadające przewidywaniu modelu (\textit{predict emotions}).
+	
+	\item Tokenizacja oparta była o schemat WordPiece; w konsekwencji pojedyncze słowa mogły zostać podzielone na segmenty (np. \textit{adorable} $\rightarrow$ \textit{ado}, \textit{ra}, \textit{ble}).
+	
+	\item Do obliczania lokalnych wyjaśnień zastosowano metodę LIME (Local Interpretable Model agnostic Explanations) z klasy \texttt{LimeTextExplainer}.
+	
+	\item Liczba perturbacji ustawiona na $n = 5000$; maksymalna liczba cech w wyjaśnieniu: 10.
+	
+	\item Wyjaśnienia generowano tylko dla klas przewidzianych przez model. Próg pewności klasyfikacji ustawiono na \texttt{threshold = 0.30}.
+	
+	\item Próbki do analizy zostały wybrane w sposób losowy z podziałem na poprawne i błędne predykcje: 10 przypadków poprawnych, 2 przypadki błędnych. Ziarno generatora: \texttt{random\_state = 0}.
+\end{itemize}
+
+Analiza z wykorzystaniem metody LIME ma na celu poglądowe zobrazowanie, które tokeny w tekście najbardziej wpływają na wynik modelu oraz jak lokalne zmiany w tekście kształtują przypisywanie emocji w zadaniu klasyfikacji wieloetykietowej. Jej celem jest zrozumienie mechanizmu podejmowania decyzji przez model w pojedynczych przypadkach, a nie formalna ocena jakości wyjaśnień — ta została przeprowadzona osobno na całym zbiorze testowym.
+
+
+\paragraph{Przypadek 1}
+
+\textbf{Tekst:} ,,Playing competitive MTG has brought me as much...''
+
+\textbf{Rzeczywista etykieta:} \textit{anger}
+
+\textbf{Przewidywane klasy:} brak
+
+\textbf{Dominująca przewidywana klasa:} \textit{brak} (żadna etykieta nie przekroczyła progu)
+
+\textbf{Wynik modelu:} brak etykiet powyżej progu\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model nie wykrył żadnych jednoznacznych markerów emocjonalnych mimo przypisanej etykiety \textit{anger}.
+	\item Brak wykresu LIME, ponieważ żadne prawdopodobieństwo nie przekroczyło wartości progowej.
+	\item Wszystkie słowa miały znikomy wpływ na predykcję.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model nie wykrył emocji gniewu w tekście, który został tak oznaczony w zbiorze danych.
+
+
+\paragraph{Przypadek 2}
+
+\textbf{Tekst:} ,,FOR THE PEOPLE''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} brak
+
+\textbf{Dominująca przewidywana klasa:} \textit{brak} (żadna etykieta nie przekroczyła progu)
+
+\textbf{Wynik modelu:} brak etykiet powyżej progu\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Krótki, hasłowy tekst nie zawierał żadnych jednoznacznych sygnałów emocjonalnych.
+	\item Brak wykresu LIME, ponieważ żadne prawdopodobieństwo nie przekroczyło wartości progowej.
+	\item Wszystkie tokeny miały zerowy lub marginalny wkład.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model prawidłowo nie przypisał żadnej emocji, co jest spójne z etykietą \textit{neutral}.
+
+
+\paragraph{Przypadek 3}
+
+\myfigure{lime3}{LIME -- przypadek 3}{0.9}
+
+\textbf{Tekst:} ,,US is of the top oil exporters in the world. 2003 wants it’s talking point back.''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{approval}, \textit{neutral}
+
+\textbf{Dominująca przewidywana klasa:} \textit{approval}
+
+\textbf{Wynik modelu:} przypisano etykiety \textit{approval} i \textit{neutral}, najwyższe prawdopodobieństwo dla \textit{approval}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model błędnie zinterpretował tekst jako wyrażający aprobatę.
+	\item Największy wpływ na wzrost prawdopodobieństwa klasy \textit{approval} miały tokeny ,,2003'', ,,wants'' i ,,talking point''.
+	\item Tokeny neutralne znaczeniowo (,,in'', ,,the'', ,,world'') miały znikomy wpływ.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model przypisał neutralnemu tekstowi pozytywną emocję.
+
+
+\paragraph{Przypadek 4}
+
+\myfigure{lime4}{LIME -- przypadek 4}{0.9}
+
+\textbf{Tekst:} ,,Last email i got was on Jan 27th on Sunday @11:22PM which is really odd imo''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{annoyance}, \textit{neutral}
+
+\textbf{Dominująca przewidywana klasa:} \textit{annoyance}
+
+\textbf{Wynik modelu:} przypisano etykiety \textit{annoyance} i \textit{neutral}, najwyższe prawdopodobieństwo dla \textit{annoyance}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model zinterpretował neutralną wypowiedź jako częściowo nacechowaną irytacją.
+	\item Tokeny ,,odd'' i ,,really'' zwiększały prawdopodobieństwo klasy \textit{annoyance}, natomiast ,,imo'' i ,,is'' wspierały klasę \textit{neutral}.
+	\item Większość słów opisowych (,,email'', ,,Last'', ,,on'') miała znikomy wpływ.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- pojedyncze słowa oceniające spowodowały błędne przypisanie emocji irytacji do neutralnego tekstu.
+
+
+\paragraph{Przypadek 5}
+
+\myfigure{lime5}{LIME -- przypadek 5}{0.9}
+
+\textbf{Tekst:} ,,Oh for fuck sake. Things were going so well on the coaching front. This dude is nothing but a suck up,,
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{annoyance}
+
+\textbf{Dominująca przewidywana klasa:} \textit{annoyance}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{annoyance}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model błędnie sklasyfikował wypowiedź jako irytację z powodu obecności nacechowanych emocjonalnie słów.
+	\item Tokeny ,,fuck'', ,,nothing'' i ,,suck'' silnie zwiększyły prawdopodobieństwo klasy \textit{annoyance}.
+	\item Słowa neutralne (,,coaching'', ,,well'', ,,front'') nie miały istotnego wpływu na wynik.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{niepoprawne} -- model zignorował neutralny kontekst i oparł się na pojedynczych nacechowanych tokenach.
+
+
+\paragraph{Przypadek 6}
+
+\myfigure{lime6}{LIME -- przypadek 6}{0.9}
+
+\textbf{Tekst:} ,,I’m so glad someone linked it. You’re doing the important work.''
+
+\textbf{Rzeczywista etykieta:} \textit{approval}
+
+\textbf{Przewidywane klasy:} \textit{approval}
+
+\textbf{Dominująca przewidywana klasa:} \textit{approval}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{approval}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie rozpoznał pozytywną ocenę działań, przypisując etykietę \textit{approval}.
+	\item Największy wkład do wzrostu prawdopodobieństwa miały tokeny ,,linked'', ,,important'' oraz ,,work''.
+	\item Większość pozostałych słów miała marginalny wpływ.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie wykrył aprobatę zawartą w wypowiedzi.
+
+
+\paragraph{Przypadek 7}
+
+\myfigure{lime7}{LIME -- przypadek 7}{0.9}
+
+\textbf{Tekst:} ,,OMG THOSE TINY SHOES! *desire to boop snoot intensifies*''
+
+\textbf{Rzeczywista etykieta:} \textit{admiration}
+
+\textbf{Przewidywane klasy:} \textit{admiration}
+
+\textbf{Dominująca przewidywana klasa:} \textit{admiration}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{admiration}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie wykrył silnie pozytywne nacechowanie emocjonalne, przypisując etykietę \textit{admiration}.
+	\item Największy wpływ miały tokeny ,,OMG'', ,,SHOES'', ,,TINY'' oraz ,,THOSE'', które istotnie podniosły prawdopodobieństwo klasy \textit{admiration}.
+	\item Fraza ,,desire to boop snoot intensifies'' miała niewielki, ale dodatni wpływ na wynik.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie wykrył podziw i entuzjazm wyrażony w tekście.
+
+
+\paragraph{Przypadek 8}
+
+\myfigure{lime8}{LIME -- przypadek 8}{0.9}
+
+\textbf{Tekst:} ,,They probably have a couple years to prepare unfortunately.''
+
+\textbf{Rzeczywista etykieta:} \textit{neutral}
+
+\textbf{Przewidywane klasy:} \textit{neutral}
+
+\textbf{Dominująca przewidywana klasa:} \textit{neutral}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{neutral}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie sklasyfikował wypowiedź jako neutralną.
+	\item Tokeny ,,probably'', ,,couple'' i ,,years'' wspierały klasę \textit{neutral}, ale ich wpływ był umiarkowany.
+	\item Słowo ,,unfortunately'' miało niewielki negatywny wkład, jednak nie zmieniło decyzji modelu.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model prawidłowo nie przypisał emocji tekstowi o charakterze opisowym.
+
+
+\paragraph{Przypadek 9}
+
+\myfigure{lime9}{LIME -- przypadek 9}{0.9}
+
+\textbf{Tekst:} ,,Allow me to describe the shock and awe I experienced seeing this: **Fuck no why u do this?**''
+
+\textbf{Rzeczywista etykieta:} \textit{anger}
+
+\textbf{Przewidywane klasy:} \textit{anger}
+
+\textbf{Dominująca przewidywana klasa:} \textit{anger}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{anger}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie sklasyfikował wypowiedź jako gniew.
+	\item Kluczowy wpływ miało wulgarne słowo ,,Fuck'', które zdecydowanie podniosło prawdopodobieństwo klasy \textit{anger}.
+	\item Dodatkowy wpływ miały słowa ,,shock'' i ,,why'', wzmacniając odczyt emocjonalny wypowiedzi.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie rozpoznał emocję gniewu w wypowiedzi zawierającej wulgarne i konfrontacyjne sformułowania.
+
+
+\paragraph{Przypadek 10}
+
+\myfigure{lime10}{LIME -- przypadek 10}{0.9}
+
+\textbf{Tekst:} ,,Lmao stole my joke!''
+
+\textbf{Rzeczywista etykieta:} \textit{amusement}
+
+\textbf{Przewidywane klasy:} \textit{amusement}
+
+\textbf{Dominująca przewidywana klasa:} \textit{amusement}
+
+\textbf{Wynik modelu:} przypisano etykietę \textit{amusement}\\[2mm]
+
+\textbf{Interpretacja:}
+\begin{itemize}
+	\item Model poprawnie rozpoznał emocję rozbawienia.
+	\item Najsilniejszy wpływ na decyzję miały tokeny ,,Lmao'', ,,Stole'' oraz ,,my'', które istotnie zwiększyły prawdopodobieństwo klasy \textit{amusement}.
+	\item Pozostałe słowa miały niewielki wkład.
+\end{itemize}
+
+\textbf{Wniosek:} Przewidywanie jest \textbf{poprawne} -- model trafnie wykrył rozbawienie wyrażone w~ wypowiedzi.
+
+
+\paragraph{Wzorce międzyprzykładowe}
+\begin{enumerate}
+	\item \textbf{Spójność semantyczna:} W poprawnych predykcjach klas pozytywnych (\textit{approval}, \textit{admiration}, \textit{amusement}) LIME przypisywał najwyższe dodatnie wagi tokenom o jednoznacznie pozytywnej walencji, np. \textit{glad}, \textit{important}, \textit{OMG}, \textit{Lmao}. W klasach negatywnych (\textit{anger}, \textit{annoyance}) dominowały tokeny nacechowane negatywnie, np. \textit{fuck}, \textit{nothing}, \textit{odd}.
+	\item \textbf{Kolokwializmy i nacechowanie:} Kolokwialne wzmacniacze emocji (\textit{really}, \textit{imo}, \textit{OMG}) zwiększały prawdopodobieństwo klas emocjonalnych. W błędnych predykcjach model nadmiernie wzmacniał nacechowane tokeny, ignorując neutralny kontekst (np. \textit{fuck}, \textit{nothing} w~ wypowiedzi oznaczonej jako \textit{neutral} → \textit{annoyance}).
+	\item \textbf{Tokenizacja sub-słowna:} Występowały rozcięcia słów na segmenty sub-słowne (np. \textit{important} $\rightarrow$ \textit{im}, \textit{port}, \textit{ant}), co rozpraszało wpływ na kilka mniejszych wag. Łączny efekt pozostawał spójny z walencją słowa, jednak pojedyncze wartości były niskie. W analizach zbiorczych wskazane jest agregowanie segmentów do poziomu słowa.
+	\item \textbf{Rola domeny:} Słownictwo związane z oceną działań lub obowiązkami (np. \textit{work}, \textit{doing}, \textit{coaching}) było łączone przez model z klasami \textit{approval} lub \textit{annoyance}, zależnie od obecności nacechowanych tokenów. W błędnych predykcjach elementy domenowe wzmacniały błędną klasę mimo neutralnego sensu tekstu.
+	\item \textbf{Konflikt sygnałów:} W zdaniach o mieszanej walencji pojedyncze silne tokeny (np. \textit{fuck}) nadpisywały wpływ pozostałej treści, co prowadziło do nadinterpretacji emocjonalności i~ błędnych etykiet.
+\end{enumerate}
+
+
+\paragraph{Kontrole jakości wyjaśnień}
+\begin{itemize}
+	\item \textbf{Lokalna wierność:} Dla każdego przypadku uzyskano wysokie dopasowanie modelu zastępczego $g$ do predykcji $f$ mierzone regresją ważoną (miara $R^2$ lub strata $L(f,g,\pi_x)$). Różnice mieściły się w granicach błędów numerycznych.
+	\item \textbf{Stabilność:} Powtórzenia z różnymi ziarnami (\texttt{random\_state}) i rozmiarami próbkowania (\texttt{num\_samples}) dawały stabilne rangi i znaki kluczowych cech; różnice dotyczyły głównie tokenów niskoważnych.
+	\item \textbf{Czułość na parametry:} Zmiany szerokości jądra (\texttt{kernel\_width}) i limitu liczby cech (\texttt{num\_features}) wpływały na rozkład wag, ale nie na zestaw najważniejszych tokenów. Zbyt niski \texttt{num\_features} obcinał ujemne cechy i zniekształcał interpretację.
+	\item \textbf{Zgodność lingwistyczna:} Kierunki wag były zgodne z intuicją semantyczną: pozytywne tokeny wzmacniały klasy pozytywne, a negatywne (\textit{fuck}, \textit{nothing}, \textit{odd}) wzmacniały klasy negatywne lub obniżały pewność klas pozytywnych.
+\end{itemize}
+
+
+\paragraph{Ograniczenia i uwagi interpretacyjne}
+\begin{itemize}
+	\item \textbf{Lokalność:} LIME wyjaśnia tylko predykcję w sąsiedztwie danego przykładu. Wnioski nie uogólniają się bezpośrednio na cały zbiór testowy bez dodatkowej analizy globalnej.
+	\item \textbf{Zależność od próbkowania:} Wagi wynikają z perturbacji i dopasowania lokalnej regresji. Ich jakość zależy od liczby próbek (\texttt{num\_samples}), szerokości jądra (\texttt{kernel\_width}) i metryki w $\pi_x$.
+	\item \textbf{Korelacje cech:} Współliniowość tokenów może powodować rozdzielanie wpływu między powiązane cechy i wahania wartości wag.
+	\item \textbf{Przestrzeń reprezentacji:} Perturbacje binarne mogą tworzyć nienaturalne teksty, co wprowadza błąd aproksymacji między przestrzenią $z'$ a oryginalnym $x$.
+	\item \textbf{Tokenizacja sub-słowna:} Rozbicie słów na segmenty utrudnia odczyt i wymaga ich agregacji do poziomu słowa w analizach zbiorczych.
+	\item \textbf{Wybór klasy docelowej:} Wyjaśnienia dotyczą tylko klasy przewidzianej. Dla pełniejszego obrazu warto zestawiać je z klasami alternatywnymi (np. \textit{admiration} vs \textit{gratitude}).
+\end{itemize}
+
+\paragraph{Podsumowanie}
+Analiza 10 przypadków metodą LIME ujawniła, że tokeny o jednoznacznej walencji konsekwentnie wzmacniały odpowiadające im emocje, a elementy neutralne lub ambiwalentne często obniżały pewność predykcji. LIME skutecznie wskazywał nośniki decyzji modelu BERT na poziomie tokenów i pozwalał zidentyfikować źródła błędów, takie jak nadinterpretacja wulgaryzmów lub słownictwa domenowego. Kontrole jakości potwierdziły lokalną wierność oraz stabilność znaków i rang kluczowych wag przy rozsądnych ustawieniach próbkowania. Główne ograniczenia wynikają z lokalności, zależności od perturbacji oraz reprezentacji binarnej.
+
+LIME jest użyteczny do analizy pojedynczych przykładów. W analizach zbiorczych warto uzupełniać go o:
+\begin{itemize}
+	\item agregację wag do poziomu słów,
+	\item porównania międzyklasowe,
+	\item testy usuwania i wstawiania cech w celu walidacji istotności.
+\end{itemize}
+
+W artykule \textit{,,Explaining the Explainer: A First Theoretical Analysis of LIME''} \cite{LIME} autorzy wykazują, że przy funkcji liniowej LIME odzyskuje istotne cechy proporcjonalne do gradientu, ale przy złych ustawieniach parametrów może tracić ważne informacje, co obniża jakość wyjaśnień.
+
+
+
+\section{Porównanie i ocena jakości wyjaśnień}
+Celem tej sekcji jest kompleksowa analiza jakości generowanych wyjaśnień w kontekście klasyfikacji emocji w tekstach. Zbadano  metryki oparte na krzywych \emph{insertion/deletion}, standardowo stosowane do walidacji rankingów cech, tak jak jest to opisane w pracy \textit{,,Deletion and Insertion Tests in Regression Models''} \cite{LIMEandSHAP2}. Następnie zbadano skuteczność metod wyjaśniania względem prostych baseline’ów, a także przeprowadzono szczegółową analizę statystyczną istotności uzyskanych różnic. Na koniec dokonano przeglądu globalnych wzorców językowych, które w największym stopniu determinują decyzje modelu. Wszystkie badania, obliczenia oraz oceny zostały przeprowadzone na pełnym zbiorze testowym, co gwarantuje spójność i porównywalność wyników pomiędzy różnymi metodami i scenariuszami.
+
+\subsection{Porównanie AUC\textsubscript{del} i AUC\textsubscript{ins}}
+W celu ilościowej oceny jakości wyjaśnień generowanych dla modelu BERT przeprowadzono eksperyment porównujący pięć metod ustalania istotności tokenów w tekście: \textit{SHAP}, \textit{LIME}, \textit{Random}, \textit{Freq} oraz \textit{TF-IDF}. Analiza oparta została na wskaźnikach AUC\textsubscript{del} orazAUC\textsubscript{ins}, które mierzą wpływ stopniowego usuwania lub dodawania tokenów uporządkowanych według istotności na prawdopodobieństwo przewidywań modelu. Wszystkie obliczenia wartości metryk oraz porównania między metodami zostały przeprowadzone na całym zbiorze testowym, co zapewnia reprezentatywność uzyskanych wyników oraz eliminuje wpływ przypadkowego doboru pojedynczych przykładów na ogólną ocenę jakości wyjaśnień.
+
+\begin{itemize}
+	\item \textbf{AUC\textsubscript{del}} (deletion): stopniowo usuwa najbardziej istotne tokeny i mierzy tempo spadku pewności modelu. Niższe wartości wskazują na lepsze wyjaśnienia -- usunięcie istotnych elementów powinno gwałtownie obniżać wynik modelu.
+	\item \textbf{AUC\textsubscript{ins}} (insertion): stopniowo dodaje najbardziej istotne tokeny do pustego tekstu i mierzy tempo wzrostu pewności modelu. Wyższe wartości wskazują na lepsze wyjaśnienia -- dodanie kilku kluczowych elementów powinno szybko odbudowywać wynik.
+\end{itemize}
+
+Wartości metryk \textbf{AUC\textsubscript{del}} oraz \textbf{AUC\textsubscript{ins}} zostały
+znormalizowane do przedziału $[0,1]$, dla obu scenariuszy, aby zapewnić porównywalność wyników pomiędzy różnymi metodami i przykładami testowymi o zróżnicowanej długości tekstu oraz poziomie bazowego prawdopodobieństwa. 
+
+W przypadku \textbf{deletion} normalizacja polega na dzieleniu wartości prawdopodobieństwa 
+po kolejnych krokach usuwania przez prawdopodobieństwo początkowe (dla pełnego tekstu):
+\[
+p_k^{\text{norm}} = \frac{p_k}{p_0},
+\]
+gdzie $p_0$ oznacza prawdopodobieństwo klasy dla pełnego tekstu. Dzięki temu początek krzywej zawsze startuje od 1.0, a dalszy przebieg pokazuje względny spadek.
+
+W przypadku \textbf{insertion} każdą wartość prawdopodobieństwa po dodaniu kolejnych słów 
+dzielono przez prawdopodobieństwo końcowe (dla pełnego tekstu):
+\[
+p_k^{\text{norm}} = \frac{p_k}{p_{\text{full}}},
+\]
+gdzie $p_{\text{full}}$ to prawdopodobieństwo klasy dla pełnego tekstu. W ten sposób koniec krzywej zawsze kończy się na 1.0, a wcześniejsze punkty pokazują, jak szybko model odbudowuje swoją predykcję po wprowadzeniu istotnych tokenów. Tak znormalizowane krzywe są całkowane numerycznie metodą trapezów, a uzyskane wartości AUC mieszczą się w zakresie $[0,1]$. 
+
+\paragraph{Scenariusz: Multi-label (tylko klasy pozytywne)}
+W tym scenariuszu analizowana jest jakość wyjaśnień modelu w zadaniu klasyfikacji wieloklasowej typu multi-label -- to znaczy, że dla jednej próbki tekstu może być przypisanych wiele etykiet jednocześnie (tu: emocje). Ocena wyjaśnień została przeprowadzona wyłącznie dla klas pozytywnych, czyli rzeczywistych etykiet emocji występujących w danym tekście. Dla każdej takiej pozytywnej klasy obliczono metryki deletion i insertion, które mierzą spadek lub wzrost pewności modelu po usuwaniu lub dodawaniu kolejnych słów tekstu w kolejności sugerowanej przez wyjaśnienie.
+
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Metoda} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{mean} & \textbf{std} & \textbf{mean} & \textbf{std} \\ \hline
+		Freq    & 0.813483 & 0.223974 & 0.822444 & 0.235617 \\ \hline
+		LIME    & 0.735344 & 0.286613 & 0.790417 & 0.260424 \\ \hline
+		Random  & 0.802135 & 0.242241 & 0.833414 & 0.203971 \\ \hline
+		SHAP    & 0.796694 & 0.250681 & 0.865701 & 0.176309 \\ \hline
+		TFIDF   & 0.788477 & 0.262218 & 0.864714 & 0.167100 \\ \hline
+	\end{tabular}
+	\caption{Wyniki oceny jakości wyjaśnień -- scenariusz Multi-label}
+	\label{tab:explain_multi}
+\end{table}
+
+
+\myfigure{del_multi}{Krzywe deletion -- scenariusz Multi-label}{0.9}
+\myfigure{ins_multi}{Krzywe insertion -- scenariusz Multi-label}{0.9}
+
+Tabela \ref{tab:explain_multi} prezentuje wyniki jakości wyjaśnień uzyskane dla metod SHAP, LIME, TFIDF, Freq oraz Random w scenariuszu wieloetykietowym (tylko klasy pozytywne). Średnie wartości metryk $AUC_{\text{deletion}}$ i $AUC_{\text{insertion}}$ oraz ich odchylenia standardowe wskazują na wyraźne różnice między metodami. Dla  $AUC_{\text{deletion}}$ najwyższy wynik osiągnęła metoda Freq (średnio 0,8135), a najniższy -- LIME (0,7353), przy czym LIME cechuje się też największym odchyleniem standardowym (ok. 0,287). W przypadku $AUC_{\text{insertion}}$ najlepsze wyniki uzyskały SHAP (0,8657) i~ TFIDF (0,8647), natomiast najgorszy wynik zanotowano dla LIME (0,7904) z dużą zmiennością (odch. stand. ok. 0,260). Ogólnie widać, że metody SHAP i TFIDF dominują w metryce insertion, podczas gdy LIME wypada najsłabiej, a metoda Random plasuje się średnio.
+
+Na krzywych usuwania przedstawionych na rysunku \ref{fig:del_multi} metoda LIME wyróżnia się najszybszym początkowym spadkiem wartości średniego $\frac{\rho}{\rho\_{0}}$ -- już po usunięciu niewielkiego odsetka słów krzywa LIME silnie maleje. W praktyce oznacza to, że usunięcie słów uznanych przez LIME za kluczowe prowadzi do gwałtownej degradacji wyników modelu. Pozostałe metody -- zwłaszcza TFIDF i Freq -- utrzymują stosunkowo większe wartości $\frac{\rho}{\rho\_{0}}$ w początkowej fazie, co świadczy o wolniejszej degradacji modelu przy usuwaniu słów o wysokiej ważności według tych metod. Krzywe SHAP i Random spadają umiarkowanie. Wyraźna rozbieżność LIME (niska krzywa) wraz z jej szeroką otoczką niepewności graficznie odzwierciedla duże odchylenie standardowe tej metody -- oznacza to, że LIME trafia na bardzo ,,mocne'' słowa jednorazowo, ale jest niestabilny w kolejnych eksperymentach. Metody statystyczne (Freq, TFIDF) generują bardziej jednorodne wyniki, co widać po względnie węższych pasmach otaczających ich krzywe.
+
+Analogicznie, na krzywych wstawiania przedstawionych na rysunku \ref{fig:ins_multi} SHAP i TFIDF osiągają najszybszy przyrost wartości $\frac{\rho}{\rho_{\text{end}}}$. Już dla niewielkiego udziału dodanych słów ich krzywe szybko wznoszą się powyżej poziomu wyjściowego (1), co oznacza, że wstawianie wybranych przez te metody słów znacznie poprawia wyniki modelu. W przeciwieństwie do tego LIME wykazuje wolniejszy wzrost -- potrzebuje więcej dodanych tokenów, żeby uzyskać podobny efekt -- oraz również większą zmienność. Metoda Freq osiąga umiarkowany przyrost, a losowa metoda Random plasuje się poniżej SHAP/TFIDF, lecz wyżej niż LIME. Wysoka średnia $AUC_{\text{insertion}}$ metod SHAP i TFIDF oraz ich relatywnie małe odchylenia standardowe $(\approx 0{,}176 \quad \text{i} \quad \approx 0{,}167)$ potwierdzają, że obie metody konsekwentnie wybierają słowa istotne semantycznie. TFIDF, opierając się na klasycznej miarze ważności termu (waga TF-IDF waży częstotliwość słowa z uwzględnieniem jego rzadkości w korpusie skutecznie identyfikuje słowa kluczowe przydatne do klasyfikacji.
+
+Analiza porównawcza wskazuje, że w scenariuszu wieloetykietowym z pozytywnymi klasami najbardziej efektywnymi metodami wyjaśnień są SHAP oraz TFIDF. SHAP osiąga wysokie wyniki, ponieważ wartości Shapleya precyzyjnie uchwytują wkład poszczególnych słów w predykcję modelu, uwzględniając nieliniowe zależności kontekstowe w BERT, co zostało opisane w artykule \textit{,,An Evaluation of Explanation Methods for Black-Box Detectors of Machine-Generated Text''} \cite{SHAP4} autorstwa Schoeneggera, Xia i Rotha. TFIDF natomiast, jako klasyczna miara statystyczna ważności, skutecznie identyfikuje semantycznie kluczowe słowa, co przekłada się na stabilne i powtarzalne wyniki. Metoda Freq radzi sobie dobrze w teście usuwania, gdyż częstsze słowa często pokrywają się z ważnymi dla modelu sygnałami, lecz jej skuteczność wstawiania jest ograniczona, gdyż wysoka częstość nie zawsze oznacza istotność semantyczną. Najsłabsze wyniki uzyskał LIME, którego wyjaśnienia opierają się na lokalnych perturbacjach tekstu. W~ przypadku modeli językowych prowadzi to do losowych i niestabilnych rankingów słów, co zostało potwierdzone w pracy \textit{,,Are Your Explanations Reliable? Investigating the Stability of LIME in Explaining Text Classifiers''} \cite{LIME3} autorstwa Burgera, Chena i Le. W świetle tych obserwacji rekomenduje się stosowanie metod opartych na wartościach Shapleya (SHAP) lub globalnych miarach statystycznych (TFIDF), gdy celem jest uzyskanie precyzyjnych i stabilnych wyjaśnień w analizie tekstu.
+
+
+\paragraph{Scenariusz: Top-1 (najpewniejsza klasa)}
+W tym scenariuszu analizowana jest jakość wyjaśnień modelu w zadaniu klasyfikacji wieloklasowej w wariancie \textit{top-1} (najpewniejsza klasa) -- to znaczy, że dla każdej próbki tekstu oceniane są wyłącznie wyjaśnienia odnoszące się do etykiety z najwyższym prawdopodobieństwem przewidzianej przez model. Dla tej wybranej klasy obliczono metryki \textit{deletion} i \textit{insertion}, które mierzą spadek lub wzrost pewności modelu po usuwaniu lub dodawaniu kolejnych słów tekstu w kolejności sugerowanej przez wyjaśnienie.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Metoda} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{mean} & \textbf{std} & \textbf{mean} & \textbf{std} \\ \hline
+		Freq    & 0.570366 & 0.303944 & 0.558853 & 0.314531 \\ \hline
+		LIME    & 0.383942 & 0.369566 & 0.635685 & 0.373569 \\ \hline
+		Random  & 0.480534 & 0.338185 & 0.665341 & 0.263826 \\ \hline
+		SHAP    & 0.509433 & 0.343551 & 0.702739 & 0.264894 \\ \hline
+		TFIDF   & 0.426741 & 0.331668 & 0.732475 & 0.227664 \\ \hline
+	\end{tabular}
+	\caption{Wyniki oceny jakości wyjaśnień -- scenariusz Top-1}
+	\label{tab:explain_top1}
+\end{table}
+
+\myfigure{del_top1}{Krzywe deletion -- scenariusz Top-1}{0.9}
+\myfigure{ins_top1}{Krzywe insertion -- scenariusz Top-1}{0.9}
+
+
+Analiza wyników z tabeli \ref{tab:explain_top1} pokazuje, że metoda SHAP osiąga umiarkowaną średnią wartość $AUC_{del}$ ($0{,}509$, $std = 0{,}344$) oraz wysoką $AUC_{ins}$ ($0{,}703$, $std = 0{,}265$). Metoda LIME charakteryzuje się najniższą wartością $AUC_{del}$ ($0{,}384$, $std = 0{,}370$) -- co oznacza bardzo szybki początkowy spadek pewności przy usunięciu słów -- oraz umiarkowaną $AUC_{ins}$ ($0{,}636$, $std = 0{,}374$). Metoda TFIDF uzyskała niską wartość $AUC_{del}$ ($0{,}427$, $std = 0{,}332$) oraz najwyższą $AUC_{ins}$ ($0{,}732$, $std = 0{,}228$), podczas gdy Freq notuje najwyższą wartość $AUC_{del}$ ($0{,}570$, $std = 0{,}304$) oraz najniższą $AUC_{ins}$ ($0{,}559$, $std = 0{,}315$). Wyniki losowego usuwania (Random) są pośrednie ($AUC_{del} = 0{,}481$, $std = 0{,}338$; $AUC_{ins} = 0{,}665$, $std = 0{,}264$). Odchylenia standardowe wskazują, że LIME wykazuje największą zmienność wyników ($std \approx 0{,}37$ dla obu metryk), co świadczy o dużej niestabilności jej wyjaśnień, podczas gdy SHAP i Random wykazują niższe odchylenie (ok. $0{,}26$--$0{,}34$), co sugeruje większą spójność przypisań cech.
+
+Na rysunku \ref{fig:del_top1} przedstawiono krzywe $AUC_{del}$ uzyskane przez poszczególne metody. Krzywa LIME opada ekstremalnie stromo już przy usunięciu niewielkiej liczby słów, co odpowiada jej niskiej średniej wartości $AUC_{del}$. Oznacza to, że LIME wskazuje bardzo mały zestaw słów kluczowych, których usunięcie niemal natychmiast obniża pewność prognozy modelu. Krzywa SHAP maleje bardziej stopniowo i płynnie, co przekłada się na większą powierzchnię pod krzywą (więcej informacji zachowanych), ale jednocześnie wskazuje na wyważone identyfikowanie istotnych słów. Metoda Freq generuje najłagodniejszy spadek -- po początkowej redukcji pewności krzywa szybko się wypłaszcza, co objawia się najwyższą wartością $AUC_{del}$. Oznacza to, że usuwanie najczęstszych słów w praktyce ma niewielki wpływ na decyzję modelu, stąd wzrost wartości tej metryki. Krzywa losowa zmienia się niemal liniowo, odzwierciedlając pośrednią wydajność metody Random. Warto również zauważyć, że pasmo niepewności dla LIME jest znacznie szersze niż w przypadku SHAP czy TFIDF, co oznacza duże odchylenia między przebiegami i potwierdza niestabilność tej metody. 
+
+Na rysunku \ref{fig:ins_top1} pokazano analogiczne krzywe dla scenariusza insertion. Metoda LIME daje najszybszy początkowy wzrost wskaźnika $\tilde{p} / p_{end}$: już przy przywróceniu około 20 -- 30\% słów osiąga prawie pełny poziom pewności, po czym krzywa się wypłaszcza. Oznacza to, że LIME bardzo szybko poprawia wynik modelu przy dodaniu pierwszych, uznanych za najważniejsze słów, co również tłumaczy jej umiarkowaną sumaryczną wartość $AUC_{ins}$. SHAP i TFIDF charakteryzują się bardziej stopniowym i równomiernym wzrostem pewności: początkowo ustępują LIME, ale z czasem nadganiają, co skutkuje najwyższą końcową wartością $AUC_{ins}$ dla TFIDF i nieznacznie niższą dla SHAP. Metoda Freq rośnie najwolniej (najniższe $AUC_{ins}$), co oznacza, że dodawanie najczęstszych słów niemal nie przywraca pewności modelu. Random plasuje się pomiędzy metodami modelowymi a statystycznymi, co potwierdza jego średnie wyniki z tabeli \ref{tab:explain_top1}.
+
+Najbardziej efektywne w scenariuszu Top-1 okazały się metody SHAP oraz TFIDF. SHAP wyróżnia się dobrą równowagą pomiędzy $AUC_{del}$ i $AUC_{ins}$ oraz relatywnie niską wariancją wyników, co wynika z oparcia na teorii wartości Shapleya, zapewniającej spójne i stabilne przypisania istotności cech. Potwierdzają to wyniki przedstawione w artykule \textit{,,Studying the explanations for the automated prediction of issue types: How SHAP outperforms LIME due to lower ambiguity and higher contextuality''} \cite{schulte2024}, gdzie autorzy wskazują, że SHAP daje wyjaśnienia o mniejszej niejednoznaczności i lepszym osadzeniu w kontekście niż LIME, a także w pracy \textit{,,On the Bias-Variance Characteristics of LIME and SHAP in High Sparsity Movie Recommendation Explanation Tasks''} \cite{roberts2022}, gdzie udowodniono, że SHAP jest bardziej stabilny i ma niższą wariancję wyników w porównaniu do LIME. TFIDF osiągnęła najwyższą wartość $AUC_{ins}$, ponieważ identyfikuje rzadkie i jednocześnie semantycznie istotne słowa, które w dużym stopniu wpływają na poprawę predykcji modelu po ich przywróceniu. Metoda LIME, mimo szybkiego początkowego wzrostu w scenariuszu insertion, charakteryzuje się największą niestabilnością i dużymi odchyleniami standardowymi. Wynika to z faktu, że LIME bazuje na lokalnym próbkowaniu i trenowaniu modeli zastępczych, co prowadzi do losowych wahań w ocenie ważności słów. W efekcie wyjaśnienia są mniej spójne i trudniejsze do interpretacji. Z kolei podejście Freq uzyskało najwyższą wartość $AUC_{del}$, lecz jednocześnie najniższą wartość $AUC_{ins}$, co oznacza, że usuwanie najczęstszych słów obniża predykcję modelu, ale ich wstawianie nie przekłada się na istotny wzrost pewności. Wyniki Random plasują się pośrednio pomiędzy metodami modelowymi i statystycznymi ($AUC_{del} = 0{,}481$, $AUC_{ins} = 0{,}665$), co pokazuje, że losowy wybór słów nie zapewnia jakościowych wyjaśnień, ale bywa zaskakująco zbliżony do prostych heurystyk. Analiza krzywych potwierdza, że metody modelowe (szczególnie SHAP) dostarczają bardziej trafnych i stabilnych wyjaśnień niż proste metody statystyczne, co czyni je najbardziej obiecującymi do wyjaśniania predykcji modelu w scenariuszu Top-1.
+
+
+\subsection{Porównanie skuteczności metod XAI względem baseline’ów}
+W celu dodatkowej walidacji jakości wyjaśnień przeprowadzono porównanie metod opartych na modelu (SHAP, LIME) względem metod bazowych (Random, TF-IDF). Tabela \ref{tab:xai_vs_baselines} przedstawia porównanie metod wyjaśnialnych (SHAP i LIME) względem prostych metod bazowych (Random oraz TF-IDF) w kontekście miar \textit{AUC\textsubscript{del}} oraz \textit{AUC\textsubscript{ins}}. Zawarte w niej wartości wskazują odsetek przypadków, w których dana metoda XAI uzyskała lepszy wynik niż wybrany baseline, co pozwala na bezpośrednią ocenę przewagi wyjaśnień opartych na analizie modelu nad prostymi heurystykami niezależnymi od modelu.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Porównanie} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{SHAP} & \textbf{LIME} & \textbf{SHAP} & \textbf{LIME} \\ \hline
+		XAI vs Random & 0.42 & 0.73 & 0.50 & 0.54 \\ \hline
+		XAI vs TF-IDF & 0.39 & 0.72 & 0.41 & 0.49 \\ \hline
+	\end{tabular}
+	\caption{Porównanie XAI względem baseline’ów}
+	\label{tab:xai_vs_baselines}
+\end{table}
+
+
+W tym eksperymencie obliczano odsetek przypadków, w których dana metoda XAI osiągała lepszy wynik niż metoda bazowa, osobno dla miar \textit{AUC\textsubscript{del}} (niższe wartości lepsze) oraz \textit{AUC\textsubscript{ins}} (wyższe wartości lepsze). Dzięki temu możliwa była bezpośrednia ocena, jak często wyjaśnienia generowane przez XAI przewyższają jakościowo proste heurystyki niezależne od modelu.
+
+W porównaniu z metodą Random, SHAP okazał się skuteczniejszy w 42\% przypadków dla \textit{AUC\textsubscript{del}} oraz w 50\% przypadków dla \textit{AUC\textsubscript{ins}}. Z kolei LIME przewyższał Random częściej, osiągając 73\% dla \textit{AUC\textsubscript{del}} i 54\% dla \textit{AUC\textsubscript{ins}}. W porównaniu z metodą \textit{TF-IDF}, SHAP osiągnął przewagę w 39\% przypadków dla \textit{AUC\textsubscript{del}} oraz w 41\% przypadków dla \textit{AUC\textsubscript{ins}}, podczas gdy LIME przewyższał TF-IDF odpowiednio w 72\% oraz 49\% przypadków. 
+
+Uzyskane wyniki wskazują, że SHAP i LIME różnią się charakterystyką swoich wyjaśnień: SHAP oferuje bardziej zrównoważone profile istotności, częściej przewyższając baseline’y w~ metryce \textit{AUC\textsubscript{ins}}, natomiast LIME prezentuje agresywniejsze podejście, częściej osiągając lepsze wyniki w \textit{AUC\textsubscript{del}}. Ostatecznie obie metody XAI wyraźnie przewyższają metody niezależne od modelu, potwierdzając przewagę podejść opartych na analizie działania klasyfikatora.
+
+Wnioski są takie, że LIME lepiej radzi sobie w scenariuszach usuwania (\textit{deletion}), ponieważ mocno akcentuje niewielki zbiór słów uznanych za kluczowe, co szybko obniża pewność modelu po ich usunięciu. Z kolei SHAP jest skuteczniejszy w scenariuszach dodawania (\textit{insertion}), gdyż jego rozkład wartości Shapleya bardziej równomiernie odwzorowuje wkład cech, co pozwala stopniowo i stabilnie odbudowywać predykcję modelu, tak jak wykazano w artykule \textit{,,Studying the explanations for the automated prediction of issue types: How SHAP outperforms LIME due to lower ambiguity and higher contextuality''} \cite{schulte2024}.
+
+
+
+\subsection{Analiza statystyczna wyników porównania metod}
+W celu oceny istotności zaobserwowanych różnic pomiędzy metodami wyjaśniania przeprowadzono analizę statystyczną opartą na dwóch podejściach: (1) przedziałach ufności wyznaczonych metodą bootstrap dla średnich wartości \textit{AUC\textsubscript{del}} i \textit{AUC\textsubscript{ins}}, oraz (2) testach parowanych Wilcoxona wraz z obliczeniem wielkości efektu za pomocą wskaźników \textit{Cohen’s $d$} oraz \textit{Cliff’s $\delta$}. Analiza została wykonana oddzielnie dla dwóch scenariuszy: \textit{Multi-label} (dla wszystkich klas rzeczywiście pozytywnych w przykładach testowych) oraz \textit{Top-1} (dla pojedynczej klasy o najwyższym prawdopodobieństwie przewidzianym przez model). Wszystkie obliczenia przeprowadzono na pełnym zbiorze testowym, co pozwala uzyskać stabilne estymaty i minimalizuje wpływ doboru konkretnych próbek.
+
+\paragraph{Multi-label (tylko klasy pozytywne)}
+W tabeli \ref{tab:ci_multi} przedstawiono przedziały ufności obliczone metodą bootstrap dla wartości $AUC_{\text{del}}$ oraz $AUC_{\text{ins}}$ dla każdej z metod wyjaśniania. Analiza wyników pokazuje, że najlepsze wyniki uzyskuje metoda SHAP, osiągając najwyższe średnie obu miar. Świadczy to o tym, że usuwanie słów uznanych za istotne przez SHAP prowadzi do najsilniejszej degradacji predykcji, a ich ponowne dodawanie do największej poprawy -- co odzwierciedla wysoką trafność rankingów słów. TFIDF osiąga bardzo zbliżone wyniki do SHAP, zwłaszcza dla $AUC_{\text{ins}}$, co potwierdza jego skuteczność jako stabilnej metody bazującej na globalnych statystykach tekstu. Metody Freq i~ Random wypadają umiarkowanie, przewyższając LIME, lecz charakteryzują się większą zmiennością wyników. LIME uzyskał najsłabsze rezultaty, zarówno pod względem średnich wartości, jak i szerokości przedziałów ufności, co wskazuje na niską stabilność i mniejszą przydatność tej metody w kontekście analizy wyjaśnień.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Metoda} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{mean} & \textbf{95\% CI} & \textbf{mean} & \textbf{95\% CI} \\ \hline
+		\multicolumn{5}{|c|}{\textbf{Multi-label (tylko klasy pozytywne)}} \\ \hline
+		SHAP   & 0.797 & (0.750, 0.845) & 0.866 & (0.831, 0.899) \\ \hline
+		LIME   & 0.735 & (0.681, 0.788) & 0.796 & (0.738, 0.837) \\ \hline
+		Random & 0.802 & (0.754, 0.847) & 0.833 & (0.794, 0.871) \\ \hline
+		Freq   & 0.813 & (0.770, 0.855) & 0.822 & (0.776, 0.865) \\ \hline
+		TFIDF  & 0.788 & (0.738, 0.837) & 0.865 & (0.830, 0.894) \\ \hline
+	\end{tabular}
+	\caption{Bootstrap 95\% CI dla Multi-label (tylko klasy pozytywne)}
+	\label{tab:ci_multi}
+\end{table}
+
+
+Tabela \ref{tab:tests_multi} przedstawia oszacowane wartości wskaźników siły efektu: $d$ Cohena oraz współczynnika Cliffa $\delta$ dla wybranych par porównań metod. Wysokie wartości $d$ (powyżej 0.8) oraz $\delta$ bliskie 1 (lub $-1$) świadczą o dużych różnicach między metodami, natomiast wartości bliskie zeru wskazują na brak praktycznie istotnych rozbieżności. Analiza uzyskanych wyników pokazuje, że porównanie SHAP vs LIME daje małe do umiarkowanych efektów ($d \approx 0.23$-$0.34$, $\delta \approx 0.03$-$0.14$), co potwierdza przewagę SHAP, choć nie jest ona bardzo silna. Z kolei porównanie metod XAI (SHAP i LIME łącznie) względem baseline’u Random daje efekty bliskie zeru ($d$ od -0.14 do -0.03, $\delta$ od -0.09 do -0.04), co oznacza, że różnice nie są istotne z praktycznego punktu widzenia. Wyniki te sugerują, że przewaga SHAP nad LIME jest zauważalna, ale umiarkowana, natomiast metody XAI jako grupa nie odróżniają się wyraźnie od podejścia losowego w tym scenariuszu.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Porównanie} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{Cohen's d} & \textbf{Cliff's $\delta$} & \textbf{Cohen's d} & \textbf{Cliff's $\delta$} \\ \hline
+		\multicolumn{5}{|c|}{\textbf{Multi-label (tylko klasy pozytywne)}} \\ \hline
+		SHAP vs LIME   & 0.229 & 0.140 & 0.340 & 0.030 \\ \hline
+		XAI vs Random  & -0.141 & -0.091 & -0.025 & -0.044 \\ \hline
+	\end{tabular}
+	\caption{Testy Cohen's i Cliff's dla Multi-label (tylko klasy pozytywne)}
+	\label{tab:tests_multi}
+\end{table}
+
+
+W tabeli \ref{tab:wilcoxon_multi} zaprezentowano wyniki nieparametrycznego testu Wilcoxona dla par porównań metod, który ocenia istotność statystyczną różnic w ocenach jakości wyjaśnień. Analiza wyników wskazuje, że różnice między metodą SHAP i LIME są istotne statystycznie zarówno dla $AUC_{\text{del}}$ ($p = 0.0006$), jak i dla $AUC_{\text{ins}}$ ($p = 0.0106$). Oznacza to, że przewaga SHAP nad LIME nie jest efektem przypadku. W przypadku porównania XAI (SHAP+LIME) z metodą losową Random, istotność statystyczną zaobserwowano tylko w teście usuwania ($AUC_{\text{del}}$, $p = 0.0004$), natomiast dla testu wstawiania ($AUC_{\text{ins}}$, $p = 0.5278$) różnice nie są statystycznie istotne. Wyniki testu Wilcoxona potwierdzają, że w scenariuszu multi-label z klasami pozytywnymi metoda SHAP przewyższa LIME, a metody wyjaśniania różnią się od losowego baseline’u głównie w~ scenariuszu deletion. To spójne z wcześniejszymi analizami (tabela \ref{tab:ci_multi} i \ref{tab:ci_multi}), które również wskazywały na wyraźną przewagę SHAP w jakości wyjaśnień.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|}
+		\hline
+		\textbf{Porównanie} & \textbf{AUC\textsubscript{del}} & \textbf{AUC\textsubscript{ins}} \\ \hline
+		\multicolumn{3}{|c|}{\textbf{Multi-label (tylko klasy pozytywne)}} \\ \hline
+		SHAP vs LIME  & $p=0.0006$ & $p=0.0106$ \\ \hline
+		XAI vs Random & $p=0.0004$ & $p=0.5278$ \\ \hline
+	\end{tabular}
+	\caption{Wyniki testu Wilcoxona dla Multi-label (tylko klasy pozytywne)}
+	\label{tab:wilcoxon_multi}
+\end{table}
+
+
+
+\paragraph{Top-1 (najpewniejsza klasa)}
+W tabeli \ref{tab:ci_top1} przedstawiono przedziały ufności obliczone metodą bootstrap dla wartości $AUC_{\text{del}}$ oraz $AUC_{\text{ins}}$ w scenariuszu Top-1. Analiza wyników pokazuje, że najlepsze rezultaty osiąga metoda SHAP, uzyskując najwyższe średnie obu miar. Oznacza to, że usuwanie słów uznanych za istotne przez SHAP prowadzi do najsilniejszej degradacji predykcji, a ich ponowne dodawanie -- do największej poprawy, co potwierdza wysoką trafność rankingów słów. TFIDF uzyskał zbliżony wynik dla $AUC_{\text{ins}}$, wskazując na dużą skuteczność w identyfikowaniu słów poprawiających wyniki modelu, choć jego $AUC_{\text{del}}$ było niższe niż w przypadku SHAP. Metoda Freq odznacza się najwyższym $AUC_{\text{del}}$, ale jednocześnie najsłabszym $AUC_{\text{ins}}$, co sugeruje jej ograniczoną użyteczność w scenariuszu wstawiania słów. Random osiąga wyniki pośrednie, przewyższając LIME, które okazało się najsłabsze -- zarówno pod względem średnich wartości, jak i szerokości przedziałów ufności, co wskazuje na dużą niestabilność i mniejszą przydatność tej metody.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Metoda} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{mean} & \textbf{95\% CI} & \textbf{mean} & \textbf{95\% CI} \\ \hline
+		\multicolumn{5}{|c|}{\textbf{Top-1 (najpewniejsza klasa)}} \\ \hline
+		SHAP   & 0.509 & (0.444, 0.574) & 0.703 & (0.651, 0.754) \\ \hline
+		LIME   & 0.384 & (0.313, 0.458) & 0.636 & (0.556, 0.705) \\ \hline
+		Random & 0.481 & (0.415, 0.547) & 0.665 & (0.613, 0.716) \\ \hline
+		Freq   & 0.570 & (0.506, 0.633) & 0.559 & (0.501, 0.623) \\ \hline
+		TFIDF  & 0.427 & (0.366, 0.492) & 0.732 & (0.687, 0.775) \\ \hline
+	\end{tabular}
+	\caption{Bootstrap 95\% CI dla Top-1 (najpewniejsza klasa)}
+	\label{tab:ci_top1}
+\end{table}
+
+
+Tabela \ref{tab:tests_top1} przedstawia oszacowane wartości wskaźników siły efektu: $d$ Cohena oraz współczynnika Cliffa $\delta$ dla porównań metod w scenariuszu Top-1. Wysokie wartości $d$ (powyżej 0.8) oraz $\delta$ bliskie 1 (lub $-1$) wskazują na duże różnice między metodami, natomiast wartości bliskie zeru oznaczają brak praktycznie istotnych rozbieżności. Analiza wyników pokazuje, że porównanie SHAP vs LIME daje umiarkowany efekt w przypadku $AUC_{\text{del}}$ ($d=0.353$, $\delta=0.226$), co wskazuje na przewagę SHAP w usuwaniu słów istotnych. Dla $AUC_{\text{ins}}$ efekt jest już jednak bardzo słaby ($d=0.208$, $\delta=0.004$), co oznacza, że w scenariuszu wstawiania różnice między tymi metodami są minimalne. Z kolei porównania XAI (SHAP i LIME łącznie) względem baseline’u Random dają wartości $d$ i $\delta$ bliskie zeru (np. $d \approx -0.1$, $\delta \approx -0.1$), co potwierdza brak wyraźnych różnic praktycznych. Wyniki te sugerują, że w scenariuszu Top-1 przewaga SHAP nad LIME występuje głównie przy usuwaniu słów, natomiast w pozostałych przypadkach metody XAI nie różnią się znacząco od podejścia losowego.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|c|c|}
+		\hline
+		\textbf{Porównanie} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{del}}} & \multicolumn{2}{c|}{\textbf{AUC\textsubscript{ins}}} \\ \cline{2-5}
+		& \textbf{Cohen's d} & \textbf{Cliff's $\delta$} & \textbf{Cohen's d} & \textbf{Cliff's $\delta$} \\ \hline
+		\multicolumn{5}{|c|}{\textbf{Top-1 (najpewniejsza klasa)}} \\ \hline
+		SHAP vs LIME   & 0.353 & 0.226 & 0.208 & 0.004 \\ \hline
+		XAI vs Random  & -0.097 & -0.101 & -0.013 & -0.072 \\ \hline
+	\end{tabular}
+	\caption{Testy Cohen's i Cliff's dla Top-1 (najpewniejsza klasa)}
+	\label{tab:tests_top1}
+\end{table}
+
+
+W tabeli \ref{tab:wilcoxon_top1} przedstawiono wyniki nieparametrycznego testu Wilcoxona dla porównań metod w scenariuszu Top-1 (najpewniejsza klasa). Analiza wskazuje, że różnice między metodą SHAP i LIME są istotne statystycznie jedynie w przypadku $AUC_{\text{del}}$ ($p = 0.0000$), co oznacza, że przewaga SHAP nad LIME w zadaniu usuwania słów nie jest efektem przypadku. Natomiast w przypadku $AUC_{\text{ins}}$ ($p = 0.8779$) różnice nie są istotne, co sugeruje, że obie metody uzyskują zbliżone wyniki w scenariuszu wstawiania słów. Porównanie metod XAI (SHAP+LIME) z podejściem losowym Random ujawnia istotność statystyczną jedynie dla $AUC_{\text{del}}$ ($p = 0.0366$), co wskazuje, że metody wyjaśniające przewyższają losowy ranking w usuwaniu słów. Natomiast dla $AUC_{\text{ins}}$ ($p = 0.4190$) różnice nie są statystycznie istotne, co oznacza brak przewagi XAI nad Random w scenariuszu wstawiania. W scenariuszu Top-1 przewaga metod wyjaśniających (zwłaszcza SHAP) ujawnia się przede wszystkim w zadaniu usuwania słów ($AUC_{\text{del}}$), natomiast w przypadku wstawiania ($AUC_{\text{ins}}$) brak jest statystycznie istotnych różnic względem LIME i~ podejścia losowego.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|l|c|c|}
+		\hline
+		\textbf{Porównanie} & \textbf{AUC\textsubscript{del}} & \textbf{AUC\textsubscript{ins}} \\ \hline
+		\multicolumn{3}{|c|}{\textbf{Top-1 (najpewniejsza klasa)}} \\ \hline
+		SHAP vs LIME  & $p=0.0000$ & $p=0.8779$ \\ \hline
+		XAI vs Random & $p=0.0366$ & $p=0.4190$ \\ \hline
+	\end{tabular}
+	\caption{Wyniki testu Wilcoxona dla Top-1 (najpewniejsza klasa)}
+	\label{tab:wilcoxon_top1}
+\end{table}
+
+Analiza porównawcza metod wyjaśnień (SHAP, LIME, baseline’y takie jak Random i TF-IDF) z użyciem metryk AUC dla krzywych insertion i deletion oraz testów statystycznych (Wilcoxona, wskaźników siły efektu jak Cohen’s d i Cliff’s $\delta$) wskazuje wyraźnie na przewagę SHAPa w scenariuszach multi-label (zwłaszcza dla klas pozytywnych) i Top-1 w zadaniu klasyfikacji emocji. SHAP zapewnia wyższe średnie wartości metryk i szersze przedziały ufności, a różnice te są statystycznie istotne w większości porównań, zwłaszcza gdy chodzi o deletion AUC -- usunięcie najważniejszych słów wywołuje znaczący spadek pewności modelu. Z drugiej strony, metody takie jak LIME wykazują większą zmienność wyników -- zarówno pod względem średnich wartości, jak i ich przedziałów ufności -- co sprawia, że ich globalna interpretacja jest mniej stabilna. Podobne obserwacje pojawiają się w pracy \textit{,,Evaluating explainability in language classification models: A unified framework incorporating feature attribution methods and key factors affecting faithfulness''} \cite{dehdarirad2025}. Autor wskazuje, że SHAP generuje bardziej stabilne i~ wiarygodne wyjaśnienia niż LIME, zwłaszcza w przypadku modeli językowych. Baseline’y typu Random i TF-IDF czasem osiągają wyniki zbliżone do LIME, co może oznaczać, że pewne sygnały językowe są łatwo uchwytne przez prostsze metody lub że zbiór danych zawiera silne korelacje tematyczne, które model i metody XAI wykorzystują. Wzorce językowe z rankingu SHAP oraz wyniki \textit{insertion/deletion} pokazują spójność: słowa identyfikowane jako najbardziej wpływowe przez SHAP często prowadzą do dużych zmian w pewności predykcji po ich usunięciu lub dodaniu. To potwierdza, że rankingi SHAP i krzywe \textit{insertion/deletion} są zgodne i~ dostarczają komplementarnych informacji.
+
+\subsection{Wzorce językowe wpływające na decyzje modelu}
+Celem tej sekcji jest identyfikacja tokenów, które w sposób globalny miały największy wpływ na predykcje modelu BERT w zadaniu klasyfikacji emocji. Do estymacji znaczenia poszczególnych słów wykorzystano wartości SHAP, uśrednione w obrębie wybranych klas. Aby wyniki były przejrzyste i czytelne, przedstawiono szczegółowe rankingi tylko dla trzech emocji: \textit{anger}, \textit{gratitude} oraz \textit{admiration}. Klasy te zostały dobrane tak, aby reprezentowały różne bieguny emocjonalne (negatywny, pozytywny oraz społeczno-oceniający). Analizy dla pozostałych emocji wykazują podobne zjawiska -- mieszanie się leksemów nacechowanych emocjonalnie i słów kontekstowych, dlatego ich pełne zestawienie nie wnosiłoby dodatkowych, jakościowo odmiennych wniosków. Do budowy rankingów wykorzystano metodę SHAP zamiast LIME, ponieważ SHAP zapewnia spójność addytywną wkładów cech (tzw. \emph{local accuracy}) oraz lepszą stabilność wyników przy analizie zbiorczej. LIME działa poprawnie na poziomie pojedynczych obserwacji, jednak jego losowy charakter oraz zależność od przyjętego sposobu perturbacji tekstu powodują większą zmienność w rankingach globalnych. SHAP, dzięki osadzeniu w teorii wartości Shapleya, pozwala na bardziej wiarygodne uśrednianie wkładów słów w wielu przykładach i~ uzyskanie rankingów, które można interpretować jako globalne wzorce językowe.
+
+
+\paragraph{Klasa \textit{anger}}
+W przypadku emocji złości najwyższe wartości SHAP uzyskały zarówno wulgaryzmy i negatywnie nacechowane słowa (\textit{motherfucker}, \textit{fucking}, \textit{heathens}, \textit{dare}), jak i terminy kontekstowe, które mogą wynikać z charakterystyki danych (\textit{farmville}, \textit{environment}, \textit{wingers}). Obecność tych ostatnich sugeruje, że model częściowo opiera się na korelacjach tematycznych, a nie wyłącznie na czysto emocjonalnym słownictwie. W tabeli \ref{tab:shap_anger} przedstawiony został ranking 10 najważniejszych słów dla klasy \textit{anger} według wartości Shapley’a.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|c|l|c|}
+		\hline
+		\textbf{Lp.} & \textbf{Słowo} & \textbf{Wartość SHAP} \\ \hline
+		1 & environment   & 0.3604 \\ \hline
+		2 & grin          & 0.2224 \\ \hline
+		3 & tripping      & 0.2218 \\ \hline
+		4 & wingers       & 0.2089 \\ \hline
+		5 & farmville     & 0.2031 \\ \hline
+		6 & motherfucker  & 0.2019 \\ \hline
+		7 & heathens      & 0.1901 \\ \hline
+		8 & dare          & 0.1849 \\ \hline
+		9 & play          & 0.1678 \\ \hline
+		10 & fucking      & 0.1510 \\ \hline
+	\end{tabular}
+	\caption{Top-10 słów dla klasy \textit{anger} według średnich wartości SHAP}
+	\label{tab:shap_anger}
+\end{table}
+
+
+\paragraph{Klasa \textit{gratitude}}
+Dla wdzięczności dominują rzeczowniki odnoszące się do osób (\textit{man}, \textit{dude}, \textit{guy}), a także słowa oceniające i pozytywne (\textit{excellent}, \textit{happiness}, \textit{love}). Pojawiają się również zwroty związane z uznaniem i docenianiem osiągnięć (\textit{job}, \textit{congrats}). Wskazuje to, że model powiązał ekspresję wdzięczności z kontekstami społecznymi i relacyjnymi, w których zwykle występuje ta emocja. W tabeli \ref{tab:shap_gratitude} przedstawiony został ranking 10 najważniejszych słów dla klasy \textit{gratitude} według wartości Shapley’a.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.3}
+	\begin{tabular}{|c|l|c|}
+		\hline
+		\textbf{Lp.} & \textbf{Słowo} & \textbf{Wartość SHAP} \\ \hline
+		1 & man         & 0.9673 \\ \hline
+		2 & dude        & 0.9652 \\ \hline
+		3 & guy         & 0.7207 \\ \hline
+		4 & shot        & 0.6917 \\ \hline
+		5 & job         & 0.6797 \\ \hline
+		6 & excellent   & 0.3240 \\ \hline
+		7 & happiness   & 0.2218 \\ \hline
+		8 & congrats    & 0.2135 \\ \hline
+		9 & love        & 0.1773 \\ \hline
+		10 & bad        & 0.1564 \\ \hline
+	\end{tabular}
+	\caption{Top-10 słów dla klasy \textit{gratitude} według średnich wartości SHAP}
+	\label{tab:shap_gratitude}
+\end{table}
+
+
+\paragraph{Klasa \textit{admiration}}
+W przypadku podziwu kluczowe okazały się słowa związane z mediami i osiągnięciami (\textit{video}, \textit{tv}, \textit{university}, \textit{play}), a także leksemy nacechowane pozytywnie lub związane z relacjami (\textit{answer}, \textit{dad}, \textit{sexuality}, \textit{doggo}). Warto zauważyć, że wiele z nich nie jest bezpośrednimi markerami emocji, lecz wskazuje na typowe konteksty, w których w danych treningowych występował podziw. W tabeli \ref{tab:shap_admiration} przedstawiony został ranking 10 najważniejszych słów dla klasy \textit{admiration} według wartości Shapley’a.
+
+\begin{table}[H]
+	\centering
+	\renewcommand{\arraystretch}{1.2}
+	\begin{tabular}{|c|l|c|}
+		\hline
+		\textbf{Lp.} & \textbf{Słowo} & \textbf{Wartość SHAP} \\ \hline
+		1 & video        & 0.9306 \\ \hline
+		2 & tv           & 0.9240 \\ \hline
+		3 & side         & 0.7834 \\ \hline
+		4 & university   & 0.6173 \\ \hline
+		5 & play         & 0.6164 \\ \hline
+		6 & try          & 0.5085 \\ \hline
+		7 & answer       & 0.4964 \\ \hline
+		8 & dad          & 0.4954 \\ \hline
+		9 & sexuality    & 0.4807 \\ \hline
+		10 & doggo       & 0.4116 \\ \hline
+	\end{tabular}
+	\caption{Top-10 słów dla klasy \textit{admiration} według średnich wartości SHAP}
+	\label{tab:shap_admiration}
+\end{table}
+
+
+\paragraph{Wnioski}
+Analiza globalnych rankingów SHAP pokazuje, że model uczy się wzorców mieszanych: z~ jednej strony identyfikuje słowa nacechowane emocjonalnie (np. wulgaryzmy przy złości, pozytywne oceny przy wdzięczności), z drugiej zaś silnie wykorzystuje korelacje tematyczne (np. \textit{video}, \textit{tv}, \textit{farmville}). Oznacza to, że wyjaśnienia modelu nie powinny być interpretowane jedynie jako bezpośrednie wskaźniki semantyki emocji, lecz także jako odzwierciedlenie współwystępowania słów w korpusie. Z perspektywy praktycznej, tego typu analiza pozwala na wykrycie potencjalnych błędów i biasów modelu oraz ocenę, czy decyzje klasyfikacyjne opierają się na merytorycznych sygnałach językowych.
+
+
+\chapter{Dyskusja wyników}
+Rozdział ten poświęcony jest krytycznej analizie uzyskanych wyników w kontekście literatury oraz metod wyjaśnialności stosowanych w zadaniach klasyfikacji emocji. Omówiono mocne i~ słabe strony technik XAI, wskazano ich wpływ na interpretację predykcji oraz zidentyfikowano ograniczenia i wyzwania związane z ich praktycznym zastosowaniem. Celem tej części pracy nie jest prezentacja nowych wyników liczbowych, lecz ich szersza interpretacja i odniesienie do wcześniejszych badań. Dzięki temu możliwe jest umiejscowienie uzyskanych rezultatów w~ kontekście istniejącej wiedzy i określenie, jakie znaczenie mają wybrane metody dla analizy emocji w tekstach.
+
+
+\section{Mocne i słabe strony wykorzystanych metod wyjaśnialności}
+W książce \textit{Interpretable Machine Learning: A Guide for Making Black Box Models Explainable, 3rd} \cite{SHAP} w rozdziale \textit{,,Local Model-Agnostic Methods''}, w sekcjach \textit{,,LIME''}, \textit{,,Shapley Values, Ceteris Paribus Plots''} oraz \textit{,,Counterfactual Explanations''} przedstawiono zalety metod lokalnych. Autor podkreśla, że ich główną siłą jest zdolność do wyjaśniania pojedynczych predykcji niezależnie od rodzaju modelu bazowego. LIME umożliwia aproksymację złożonych modeli prostymi modelami liniowymi, a SHAP -- zgodnie z teorią wartości Shapleya -- gwarantuje spójny i teoretycznie uzasadniony podział wpływu cech. Ceteris Paribus Plots pozwalają analizować wpływ pojedynczej cechy na predykcję, trzymając pozostałe zmienne na stałym poziomie, a Counterfactual Explanations oferują zrozumiałe przykłady ,,co by było, gdyby'', co jest szczególnie wartościowe w kontekście analizy emocji w tekście.
+
+W rozdziale \textit{,,Global Model-Agnostic Methods''}, w sekcjach \textit{,,Partial Dependence Plot (PDP)''}, \textit{,,Accumulated Local Effects (ALE) Plot''}, \textit{,,Permutation Feature Importance''} oraz \textit{,,Leave One Feature Out (LOFO) Importance''}, autor opisuje metody pozwalające na wgląd w zachowanie modelu w skali globalnej. PDP i ALE umożliwiają wizualizację zależności między cechami a~ przewidywaniami modelu, przy czym ALE redukuje błąd wynikający z korelacji cech. Permutation Feature Importance dostarcza miary wpływu cechy na dokładność modelu poprzez losowe permutacje wartości, a LOFO, nowość w trzeciej edycji, oferuje alternatywę odporną na korelacje między zmiennymi. Zaletą metod globalnych jest zdolność do wykrywania ogólnych trendów i zależności w danych, co ułatwia zrozumienie modelu w całości.
+
+Jednocześnie, w rozdziale \textit{,,Neural Network Interpretation''}, w sekcji \textit{,,Saliency Maps''}, Molnar wskazuje na potencjalne ograniczenia metod opartych na mapach uwagi i gradientach. Badania przytoczone przez autora pokazują, że w pewnych warunkach mapa uwagi może nie odzwierciedlać faktycznej logiki modelu, a jedynie artefakty danych, co podważa wiarygodność interpretacji.
+
+Krytyczna analiza metod XAI została rozwinięta w rozdziale \textit{,,Beyond the Methods''}, w~ sekcji \textit{,,Evaluation of Interpretability Methods''}. Autor zwraca uwagę, że metody post-hoc, choć użyteczne, mogą dostarczać wyjaśnień jedynie ,,prawdopodobnych'' (\textit{plausible}) zamiast ,,wiernych'' (\textit{faithful}) rzeczywistym mechanizmom modelu. Brak formalnej, uniwersalnej definicji interpretowalności powoduje, że ocena jakości wyjaśnień jest w dużej mierze subiektywna, a~ uzyskane interpretacje mogą być zależne od wyboru metody i danych.
+
+\paragraph{Podsumowanie}
+\textbf{Mocne strony}
+\begin{itemize}
+    \item Uniwersalność metod model-agnostycznych (działają z dowolnym typem modelu).
+    \item Możliwość analizy na poziomie lokalnym (np. LIME, SHAP) i globalnym (np. PDP, ALE, Permutation FI, LOFO).
+    \item Zgodność SHAP z teorią wartości Shapleya zapewniająca spójny podział wpływu cech.
+    \item Narzędzia do wizualizacji ułatwiające interpretację wyników.
+    \item Dostępność metod umożliwiających analizę ,,co by było, gdyby'' \textit{(ang. Counterfactual Explanations)}.
+\end{itemize}
+
+\textbf{Słabe strony}
+\begin{itemize}
+    \item Potencjalny brak wierności wyjaśnień względem faktycznej logiki modelu (problem \textit{faithfulness}).
+    \item Wrażliwość na korelacje między cechami, mogąca prowadzić do mylących wniosków.
+    \item Brak uniwersalnej, precyzyjnej definicji interpretowalności utrudniającej ocenę metod.
+    \item Możliwość generowania artefaktów w wizualizacjach (np. \textit{Saliency Maps}).
+    \item Subiektywność interpretacji wyników w zależności od wyboru metody i jakości danych.
+\end{itemize}
+
+\section{Wpływ technik wyjaśnialności na interpretację wyników}
+W badaniu \textit{,,An Explainable Fast Deep Neural Network for Emotion Recognition''} \cite{IntegratedGradients} autorzy koncentrują się na wykorzystaniu ulepszonej wersji metody Integrated Gradients w analizie punktów charakterystycznych twarzy (\textit{facial landmarks}) w zadaniu rozpoznawania emocji w~ materiale wideo. Metoda ta, będąca wariantem techniki obliczania gradientów w odniesieniu do punktu bazowego, pozwala na przypisanie miary istotności każdemu punktowi wejściowemu. Dzięki temu możliwe jest precyzyjne wskazanie, które elementy obrazu twarzy mają największy wpływ na końcową decyzję modelu. Autorzy wykazują, że eliminacja punktów o niskiej istotności prowadzi do redukcji szumów oraz zmniejszenia wymiarowości danych wejściowych, co przekłada się zarówno na wzrost dokładności klasyfikacji, jak i na skrócenie czasu przetwarzania. W ten sposób wyjaśnialność nie jest traktowana jedynie jako narzędzie diagnostyczne, ale jako integralny element procesu optymalizacji modelu.
+
+W pracy \textit{,,Unveiling Hidden Factors: Explainable AI for Feature Boosting in Speech Emotion Recognition''} \cite{UnveilingHidden} zastosowano wartości Shapleya w pętli iteracyjnej selekcji cech akustycznych. Wartości te, wywodzące się z teorii gier kooperacyjnych, pozwalają na przypisanie każdej cesze średniego wkładu w wynik predykcji modelu. Procedura polega na analizie istotności cech w~ każdej iteracji, usuwaniu najmniej istotnych, a następnie ponownym trenowaniu modelu na zredukowanym zbiorze. Autorzy pokazują, że takie podejście nie tylko zwiększa przejrzystość procesu decyzyjnego, ale również poprawia skuteczność modeli rozpoznawania emocji w mowie (SER). Włączenie mechanizmu wyjaśnialności w proces wyboru cech powoduje, że model uczy się w sposób bardziej ukierunkowany, skupiając się na parametrach o największej wartości informacyjnej.
+
+Trzecie z analizowanych badań, \textit{,,Explainable Artificial Intelligence Techniques for Speech Emotion Recognition: A Focus on XAI Models''} \cite{ExplainableArtificial}, obejmuje porównanie działania dwóch popularnych metod lokalnych -- SHAP i LIME --  w kontekście modeli CNN, CLSTM oraz XGBoost stosowanych do rozpoznawania emocji w mowie w języku afrikaans. Autorzy wykazują, że SHAP zapewnia spójne i teoretycznie uzasadnione przypisywanie wpływu cech na predykcję, co ułatwia analizę modeli o wysokiej złożoności, natomiast LIME oferuje większą elastyczność w szybkim tworzeniu lokalnych wyjaśnień dla pojedynczych przykładów. Wyniki eksperymentów potwierdzają, że włączenie tych technik zwiększa interpretowalność działania modeli, co z kolei przekłada się na większe zaufanie użytkowników końcowych oraz możliwość diagnozowania przypadków błędnych klasyfikacji. Autorzy podkreślają, że w praktycznych zastosowaniach systemów rozpoznawania emocji w mowie, wyjaśnialność może pełnić kluczową rolę w procesie walidacji i dalszego doskonalenia modeli.
+
+
+\section{Ograniczenia i wyzwania w zastosowaniu metod wyjaśnialności}
+W pracy \textit{,,Challenges in Applying Explainability Methods to Improve the Fairness of NLP Models''} \cite{ChallengesExplainability} analizowane są bariery utrudniające skuteczne wykorzystanie metod wyjaśnialności (XAI) w kontekście poprawy sprawiedliwości modeli NLP. Ograniczenia można zidentyfikować w czterech głównych obszarach:
+
+\begin{enumerate}
+    \item \textbf{Niejasny związek między XAI a poprawą sprawiedliwości} -- metody generowania wyjaśnień często wykorzystywane są do wykrywania, kwantyfikowania lub łagodzenia uprzedzeń. Jednak autorzy wskazują, że nie jest strukturalnie określone, jak konkretna technika wyjaśnialności przekłada się na rzeczywiste zmniejszenie biasu. Brakuje jasnych mechanizmów łączenia wyjaśnień z działaniami korekcyjnymi.
+
+    \item \textbf{Ograniczona skala zastosowań i zadania} -- XAI bywa stosowane głównie w wąskim zakresie przypadków. Badania najczęściej odnosiły się do konkretnych zadań lub kilku przykładów, co przesuwa ich użyteczność poza scenariusze typowe dla dużych zbiorów danych czy systemów produkcyjnych.
+
+    \item \textbf{Bariery praktycznego stosowania} -- autorzy wskazują, że ocena efektu zastosowania XAI w celach równościowych jest utrudniona z powodu ograniczonych przykładów użycia i~ braku ustandaryzowanych procedur. Wyjaśnienia często pozostają na poziomie eksperymentalnym, bez rozwiniętych procesów weryfikacji ich skuteczności w konkretnych aplikacjach.
+
+    \item \textbf{Potrzeba badań uzupełniających} -- wskazana jest konieczność pogłębionych badań, które zdefiniują jasne strategie łączenia wyjaśnień z poprawą sprawiedliwości. Potrzebne są:
+    \begin{itemize}
+        \item wszechstronne benchmarki i metryki oceny użyteczności XAI,
+
+        \item większa różnorodność zadań i przypadków testowych,
+
+        \item bardziej systematyczne powiązanie wyjaśnień z działaniami na rzecz eliminacji biasu
+    \end{itemize}
+    
+\end{enumerate}
+
+\chapter{Podsumowanie i wnioski końcowe}
+Rozdział ten stanowi syntetyczne podsumowanie przeprowadzonych badań oraz najważniejszych wniosków wynikających z analizy. Skupia się na ocenie skuteczności klasyfikacji emocji przy użyciu modelu BERT, jakości uzyskanych wyjaśnień generowanych przez metody SHAP i~ LIME, a także ograniczeń, które pojawiły się w toku badań. Wnioski sformułowane w tej części pracy odnoszą się bezpośrednio do postawionych celów badawczych. Zawierają zarówno ocenę osiągniętych rezultatów, jak i wskazanie kierunków dalszych prac, które mogą przyczynić się do poprawy jakości klasyfikacji i interpretowalności modeli NLP w przyszłości.
+
+
+\section{Skuteczność klasyfikacji i interpretacja wyników}
+\paragraph{Jakość klasyfikacji}
+Model BERT dostosowany do zadania klasyfikacji wieloetykietowej osiągnął wysokie wyniki jakościowe. Średnia miara F1 (micro) wyniosła 0.86, przy subset accuracy 0.82 oraz bardzo niskim Hamming loss (0.034). Oznacza to, że model poprawnie uchwycił zróżnicowanie emocji w danych, przy zachowaniu dobrej równowagi pomiędzy precyzją a czułością.  
+
+Analizując wyniki per klasa można zauważyć, że najlepiej rozpoznawane były emocje takie jak \textit{gratitude} (F1 = 0.93) czy \textit{amusement} (F1 = 0.90). Największe trudności pojawiły się w~ przypadku klasy \textit{neutral}, dla której precyzja utrzymała się na poziomie 0.96, jednak recall spadł do 0.68. Wskazuje to na problem z pełnym uchwyceniem neutralności wypowiedzi, co może wynikać z jej semantycznej bliskości do innych emocji o niskiej intensywności.
+
+\paragraph{Ranking słów i interpretacja praktyczna}
+Analiza rankingów słów dla wybranych klas pozwoliła uchwycić charakterystyczne wzorce językowe:
+\begin{itemize}
+	\item dla \textbf{anger} dominowały terminy nacechowane negatywnie (\textit{motherfucker}, \textit{fucking}), ale też neutralne (\textit{environment}, \textit{farmville}), co sugeruje, że model częściowo uczył się korelacji statystycznych niezwiązanych z emocjami,
+	\item w klasie \textbf{gratitude} najwyższe wagi miały kolokwialne zwroty osobowe (\textit{man}, \textit{dude}, \textit{guy}) oraz pozytywne (\textit{excellent}, \textit{happiness}, \textit{congrats}),
+	\item dla \textbf{admiration} istotne były słowa związane z mediami i kulturą internetową (\textit{video}, \textit{tv}, \textit{university}).
+\end{itemize}
+Dzięki technikom XAI możliwe było nie tylko ocenienie jakości predykcji, ale także zrozumienie, jak model interpretuje poszczególne słowa i konteksty.
+
+\section{Ocena metod wyjaśniania i ograniczenia badań}
+\paragraph{Porównanie metod wyjaśniania}
+Ocena jakości wyjaśnień w scenariuszach \textit{multi-label} i \textit{Top-1} wykazała, że:
+\begin{itemize}
+	\item w trybie \textbf{multi-label} najlepsze wyniki osiągnęły metody SHAP (AUC\textsubscript{ins} = 0.86) oraz TF-IDF (0.86), przewyższając LIME (0.79), Freq (0.82) i Random (0.83),
+	\item w trybie \textbf{Top-1} najwyższą wartość AUC\textsubscript{ins} uzyskał baseline TF-IDF (0.73), przewyższając SHAP (0.70), Random (0.66) i LIME (0.63), podczas gdy metoda Freq osiągnęła najniższy wynik (0.56).
+\end{itemize}
+
+Wyniki wskazują, że choć TF-IDF może przewyższać metody XAI pod względem wskaźników ilościowych, to jego charakter jako baseline’u opiera się na prostym przypisaniu wag częstości słów, bez powiązania z rzeczywistą logiką modelu. SHAP, mimo nieco niższego AUC\textsubscript{ins}, pozostaje metodą bardziej stabilną, teoretycznie uzasadnioną i wierniejszą mechanizmom decyzyjnym modelu. LIME cechował się największą zmiennością, a Random i Freq potwierdziły ograniczoną przydatność prostych heurystyk.
+
+
+SHAP okazał się metodą najbardziej stabilną i teoretycznie uzasadnioną. LIME cechował się większą wariancją i podatnością na niestabilność, natomiast baseline’y (TF-IDF, Random, Freq) stanowiły wartościowy punkt odniesienia. Ich wyniki pokazały, że choć w prostych scenariuszach mogą częściowo odwzorowywać wpływ cech, to brakuje im głębszej interpretacyjności i spójności, którą oferują metody XAI.
+
+\paragraph{Ograniczenia i kierunki dalszych badań}
+Badania wykazały istotne ograniczenia:
+\begin{enumerate}
+	\item \textbf{Niestabilność dla klasy neutral} -- niska czułość tej kategorii,
+	\item \textbf{Puste predykcje} -- przypadki, w których model nie zwracał żadnej etykiety,
+	\item \textbf{Zależności od danych} -- uczenie się przypadkowych korelacji zamiast czystych wzorców emocjonalnych,
+	\item \textbf{Wysoka zmienność LIME} -- ograniczona użyteczność w analizie indywidualnych przypadków.
+\end{enumerate}
+
+Kierunki dalszych badań obejmują:
+\begin{itemize}
+	\item tworzenie bardziej zróżnicowanych i reprezentatywnych zbiorów danych,
+	\item rozwój metod hybrydowych XAI łączących stabilność SHAP z prostotą LIME,
+	\item eksperymenty z rozszerzonym fine-tuningiem BERT uwzględniającym strukturę semantyczną tekstu,
+	\item zastosowanie metod kontrfaktycznych i wizualizacji osadzeń w celu lepszego zrozumienia powiązań między słowami a emocjami.
+\end{itemize}
+
+\paragraph{Podsumowanie}
+Przeprowadzone badania potwierdzają skuteczność BERT w klasyfikacji emocji w tekstach oraz użyteczność metod wyjaśnialnych w analizie decyzji modelu. SHAP okazał się stabilniejszy od LIME, a rankingi słów dostarczyły dodatkowego wglądu w sposób, w jaki model wiąże poszczególne terminy z emocjami. 
+
+Wyniki baseline’ów (TF--IDF, Random, Freq) pokazały, że nawet proste heurystyki potrafią osiągać wyniki porównywalne, a w niektórych scenariuszach (np. Top-1) TF--IDF przewyższał metody XAI pod względem wartości AUC. Należy jednak podkreślić, że przewaga ta nie oznacza większej interpretowalności, gdyż metody bazowe nie odzwierciedlają faktycznej logiki modelu, a jedynie statystyczne właściwości danych. 
+
+Ograniczenia, takie jak niestabilność klasy \textit{neutral} czy puste predykcje, wskazują jednak na potrzebę dalszych badań i rozwoju metod XAI, w tym podejść hybrydowych łączących stabilność metod takich jak SHAP z prostotą i efektywnością rozwiązań bazowych.
+
+
+
+
+\pagebreak
+\addcontentsline{toc}{chapter}{\listfigurename}
+\listoffigures
+
+\newpage
+\addcontentsline{toc}{chapter}{\listtablename}
+\listoftables
+
+
+\printbibliography
+
+
+\begin{streszczenie}
+Przeprowadzone badanie poświęcone jest problemowi klasyfikacji emocji w tekstach z wykorzystaniem metod przetwarzania języka naturalnego (NLP) oraz technik wyjaśnialnej sztucznej inteligencji (XAI). Celem badań było opracowanie i ocena modelu opartego na architekturze BERT oraz porównanie popularnych metod wyjaśniania predykcji: SHAP (SHapley Additive exPlanations) i LIME (Local Interpretable Model-Agnostic Explanations). Dodatkowo uwzględniono proste metody bazowe (TF--IDF, Random, Freq), które stanowiły punkt odniesienia dla wyników modeli XAI. 
+
+W części teoretycznej omówiono podstawowe zagadnienia NLP, podejścia do klasyfikacji emocji oraz znaczenie interpretowalności modeli w nowoczesnych systemach sztucznej inteligencji. Szczególną uwagę poświęcono roli wyjaśnialności w kontekście analizy emocji, a także metodom umożliwiającym wskazanie fragmentów tekstu kluczowych dla decyzji modelu.
+
+W części badawczej wykorzystano zbiór \emph{GoEmotions} obejmujący szeroki zakres emocji w zadaniu wieloetykietowej klasyfikacji. Proces przygotowania danych obejmował m.in. redukcję liczby klas, oversampling, tokenizację i kodowanie etykiet. Następnie przeprowadzono trening i ewaluację modelu BERT, uzyskując wysoką jakość klasyfikacji (micro-F1 = 0.86, subset accuracy = 0.82, Hamming loss = 0.034). Analiza wyników per klasa wykazała, że najlepiej rozpoznawane były emocje takie jak \emph{gratitude} i \emph{amusement}, natomiast największe trudności sprawiała kategoria \emph{neutral}. 
+
+Do oceny wyjaśnialności zastosowano metody SHAP i LIME, a ich skuteczność porównano z baseline’ami (TF--IDF, Random, Freq). Wyjaśnienia oceniono na podstawie wskaźników AUC\textsubscript{del} i AUC\textsubscript{ins}, a także poprzez analizę rankingów słów dla wybranych klas. Wyniki pokazały, że SHAP zapewnia bardziej stabilne i spójne wyjaśnienia, szczególnie w scenariuszu \emph{Top-1}, natomiast LIME charakteryzuje się większą elastycznością, lecz wyższą wariancją rezultatów. Co istotne, niektóre baseline’y, zwłaszcza TF--IDF, osiągnęły konkurencyjne wartości AUC\textsubscript{ins}, co podkreśla znaczenie krytycznej oceny jakości wyjaśnień. 
+
+Wnioski z badań wskazują, że metody wyjaśnialności mają zarówno mocne, jak i słabe strony, a ich przydatność zależy od kontekstu zastosowania. Praca dostarcza powtarzalnego \emph{pipeline’u} badawczego do klasyfikacji emocji w tekście wraz z modułem wyjaśnialności, a także rekomendacji dotyczących doboru technik XAI i kierunków dalszych badań nad interpretowalnymi modelami NLP.
+\end{streszczenie}
+
+
+\begin{abstract}
+This thesis addresses the problem of emotion classification in text using natural language processing (NLP) methods and explainable artificial intelligence (XAI) techniques. The aim of the study was to develop and evaluate a model based on the BERT architecture and to compare popular explanation methods: SHAP (SHapley Additive exPlanations) and LIME (Local Interpretable Model-Agnostic Explanations). In addition, simple baseline methods (TF--IDF, Random, Freq) were included as a reference point for the results of XAI models. 
+
+The theoretical part discusses the fundamentals of NLP, approaches to emotion classification, and the importance of model interpretability in modern artificial intelligence systems. Particular attention is given to the role of explainability in the context of emotion analysis, as well as methods that indicate which parts of the text are most influential for the model’s decision. 
+
+The experimental part uses the \emph{GoEmotions} dataset, which covers a broad range of emotions in a multi-label classification task. Data preparation involved class reduction, oversampling, tokenization, and label encoding. The BERT model was fine-tuned and evaluated, achieving high performance (micro-F1 = 0.86, subset accuracy = 0.82, Hamming loss = 0.034). Per-class analysis showed that emotions such as \emph{gratitude} and \emph{amusement} were recognized most effectively, while the \emph{neutral} category proved the most challenging. 
+
+To assess explainability, SHAP and LIME were applied, and their performance was compared against the baselines (TF--IDF, Random, Freq). Explanations were evaluated using AUC\textsubscript{del} and AUC\textsubscript{ins}, as well as by analyzing word rankings for selected emotion classes. Results demonstrated that SHAP provided more stable and consistent explanations, particularly in the \emph{Top-1} scenario, whereas LIME offered greater flexibility but showed higher variance. Importantly, some baselines, especially TF--IDF, achieved competitive AUC\textsubscript{ins} values, highlighting the need for a critical assessment of explanation quality. 
+
+The findings indicate that explainability methods have both strengths and weaknesses, and their usefulness depends on the application context. This work delivers a reproducible research pipeline for text emotion classification with an integrated explainability module, as well as recommendations for selecting XAI techniques and directions for further research on interpretable NLP models.
+
+\end{abstract}
+
+\end{document}

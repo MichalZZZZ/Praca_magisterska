@@ -1,0 +1,28 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {2.1}{\ignorespaces Fragment zbioru danych z etykietami dominujących emocji i listą emocji.}}{15}{table.caption.5}%
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {3.1}{\ignorespaces Liczebności poszczególnych emocji w zbiorze}}{25}{table.caption.13}%
+\contentsline {table}{\numberline {3.2}{\ignorespaces Liczebności 10 najczęstszych emocji w zbiorze danych}}{26}{table.caption.14}%
+\contentsline {table}{\numberline {3.3}{\ignorespaces Przykładowe wyniki predykcji modelu na tekstach}}{32}{table.caption.17}%
+\contentsline {table}{\numberline {3.4}{\ignorespaces Metryki jakości klasyfikacji}}{32}{table.caption.18}%
+\contentsline {table}{\numberline {3.5}{\ignorespaces Raport klasyfikacji dla poszczególnych etykiet}}{33}{table.caption.19}%
+\contentsline {table}{\numberline {3.6}{\ignorespaces Wyniki oceny jakości wyjaśnień -- scenariusz Multi-label}}{52}{table.caption.67}%
+\contentsline {table}{\numberline {3.7}{\ignorespaces Wyniki oceny jakości wyjaśnień -- scenariusz Top-1}}{55}{table.caption.71}%
+\contentsline {table}{\numberline {3.8}{\ignorespaces Porównanie XAI względem baseline’ów}}{59}{table.caption.74}%
+\contentsline {table}{\numberline {3.9}{\ignorespaces Bootstrap 95\% CI dla Multi-label (tylko klasy pozytywne)}}{60}{table.caption.76}%
+\contentsline {table}{\numberline {3.10}{\ignorespaces Testy Cohen's i Cliff's dla Multi-label (tylko klasy pozytywne)}}{60}{table.caption.77}%
+\contentsline {table}{\numberline {3.11}{\ignorespaces Wyniki testu Wilcoxona dla Multi-label (tylko klasy pozytywne)}}{61}{table.caption.78}%
+\contentsline {table}{\numberline {3.12}{\ignorespaces Bootstrap 95\% CI dla Top-1 (najpewniejsza klasa)}}{61}{table.caption.80}%
+\contentsline {table}{\numberline {3.13}{\ignorespaces Testy Cohen's i Cliff's dla Top-1 (najpewniejsza klasa)}}{62}{table.caption.81}%
+\contentsline {table}{\numberline {3.14}{\ignorespaces Wyniki testu Wilcoxona dla Top-1 (najpewniejsza klasa)}}{62}{table.caption.82}%
+\contentsline {table}{\numberline {3.15}{\ignorespaces Top-10 słów dla klasy \textit {anger} według średnich wartości SHAP}}{64}{table.caption.84}%
+\contentsline {table}{\numberline {3.16}{\ignorespaces Top-10 słów dla klasy \textit {gratitude} według średnich wartości SHAP}}{64}{table.caption.86}%
+\contentsline {table}{\numberline {3.17}{\ignorespaces Top-10 słów dla klasy \textit {admiration} według średnich wartości SHAP}}{65}{table.caption.88}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
